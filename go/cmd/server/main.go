@@ -28,6 +28,8 @@ func main() {
 	r := http.NewServeMux()
 	routes.SetupRoutes(r) // Set up the routes
 	r.HandleFunc("/ws", websocket.Handler)
+	// fs := http.FileServer(http.Dir("./public"))
+	// r.PathPrefix("/").Handler(fs) // This line serves all files in the public directory
 
 	port := os.Getenv("PORT")
 	if port == "" {
