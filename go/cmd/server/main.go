@@ -9,6 +9,7 @@ import (
 
 	"quikvote/internal/database"
 	"quikvote/internal/routes"
+	"quikvote/internal/websocket"
 )
 
 func main() {
@@ -26,6 +27,7 @@ func main() {
 
 	r := http.NewServeMux()
 	routes.SetupRoutes(r) // Set up the routes
+	r.HandleFunc("/ws", websocket.Handler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

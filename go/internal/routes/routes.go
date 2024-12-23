@@ -18,7 +18,6 @@ func SetupRoutes(r *http.ServeMux) {
 	r.HandleFunc("GET /api/room/{id}", auth.Middleware(handlers.GetRoomHandler))
 	r.HandleFunc("POST /api/room/{code}/join", auth.Middleware(handlers.JoinRoomHandler))
 	r.HandleFunc("POST /api/room/{id}/options", auth.Middleware(handlers.AddOptionToRoomHandler))
-	r.HandleFunc("POST /api/room/{id}/lockin", auth.Middleware(handlers.SubmitUserVotesHandler))
 	r.HandleFunc("POST /api/room/{id}/close", auth.Middleware(handlers.CloseRoomHandler))
 
 	r.HandleFunc("/api/results/{id}", handlers.GetResultHandler)

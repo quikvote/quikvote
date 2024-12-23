@@ -19,7 +19,7 @@ func CreateResult(ctx context.Context, username string, sortedOptions []string) 
 	result := models.Result{
 		Owner:         username,
 		SortedOptions: sortedOptions,
-		Timestamp:     time.Now().UnixNano(),
+		Timestamp:     time.Now().UnixMilli(),
 	}
 	insertResult, err := col.InsertOne(ctx, result)
 	if err != nil {

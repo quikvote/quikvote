@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"quikvote/internal/database"
 	"quikvote/internal/models"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -24,6 +26,17 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{"id": newRoom.ID.Hex(), "code": newRoom.Code})
+}
+
+type RoomResponse struct {
+	ID           primitive.ObjectID `json:"id"`
+	Code         string             `json:"code"`
+	Owner        string             `json:"owner"`
+	Participants []string           `json:"participants"`
+	Options      []string           `json:"options"`
+	Votes        []models.Vote      `json:"votes"`
+	State        string             `json:"state"`
+	IsOwner      bool               `json:"isOwner"`
 }
 
 func GetRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +65,18 @@ func GetRoomHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{"...room": room, "isOwner": room.Owner == user.Username})
+	response := RoomResponse{
+		ID:           room.ID,
+		Code:         room.Code,
+		Owner:        room.Owner,
+		Participants: room.Participants,
+		Options:      room.Options,
+		Votes:        room.Votes,
+		State:        room.State,
+		IsOwner:      room.Owner == user.Username,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -146,59 +170,6 @@ func AddOptionToRoomHandler(w http.ResponseWriter, r *http.Request) {
 	if success {
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]interface{}{"options": append(room.Options, option)})
-		return
-	}
-	http.Error(w, "unknown server error", http.StatusInternalServerError)
-}
-
-func SubmitUserVotesHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user, ok := ctx.Value("user").(*models.User)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	roomId := r.PathValue("id")
-
-	var reqBody map[string][]string
-	err := json.NewDecoder(r.Body).Decode(&reqBody)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	votes, ok := reqBody["votes"]
-	if !ok {
-		http.Error(w, "Missing votes", http.StatusBadRequest)
-		return
-	}
-
-	room, err := database.GetRoomById(ctx, roomId)
-	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-	if room == nil {
-		http.Error(w, fmt.Sprintf("Room %s does not exist", roomId), http.StatusNotFound)
-		return
-	}
-	if room.State != "open" {
-		http.Error(w, "Room is not open", http.StatusConflict)
-		return
-	}
-	if !contains(room.Participants, user.Username) {
-		http.Error(w, "User is not allowed to participate in room", http.StatusForbidden)
-		return
-	}
-
-	success, err := database.SubmitUserVotes(ctx, roomId, user.Username, votes)
-	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	if success {
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{"resultsId": "", "isOwner": room.Owner == user.Username})
 		return
 	}
 	http.Error(w, "unknown server error", http.StatusInternalServerError)

@@ -8,25 +8,30 @@ import (
 	"quikvote/internal/models"
 )
 
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var user models.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	var register_req LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&register_req)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if user.Username == "" {
+	if register_req.Username == "" {
 		http.Error(w, "Missing username", http.StatusBadRequest)
 		return
 	}
-	if len(user.Password) == 0 {
+	if len(register_req.Password) == 0 {
 		http.Error(w, "Missing password", http.StatusBadRequest)
 		return
 	}
 
-	existingUser, err := database.GetUser(ctx, user.Username)
+	existingUser, err := database.GetUser(ctx, register_req.Username)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -36,7 +41,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdUser, err := database.CreateUser(ctx, user.Username, string(user.Password))
+	createdUser, err := database.CreateUser(ctx, register_req.Username, string(register_req.Password))
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -50,29 +55,20 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var user models.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	var login_req LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&login_req)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if user.Username == "" {
-		http.Error(w, "Missing username", http.StatusBadRequest)
-		return
-	}
-	if len(user.Password) == 0 {
-		http.Error(w, "Missing password", http.StatusBadRequest)
-		return
-	}
-
-	existingUser, err := database.GetUser(ctx, user.Username)
+	existingUser, err := database.GetUser(ctx, login_req.Username)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
-	if existingUser != nil && auth.ComparePasswords(existingUser.Password, user.Password) {
+	if existingUser != nil && auth.ComparePasswords(existingUser.Password, login_req.Password) {
 		auth.SetAuthCookie(w, existingUser.Token)
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"username": existingUser.Username})

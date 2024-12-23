@@ -8,6 +8,10 @@ import (
 	"quikvote/internal/models"
 )
 
+type HistoryResponse struct {
+	History []models.Result `json:"history"`
+}
+
 func GetHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, ok := ctx.Value("user").(*models.User)
@@ -23,5 +27,8 @@ func GetHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{"history": history})
+	history_response := HistoryResponse{
+		History: history,
+	}
+	json.NewEncoder(w).Encode(history_response)
 }

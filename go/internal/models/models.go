@@ -9,10 +9,10 @@ type User struct {
 }
 
 type Result struct {
-	ID            primitive.ObjectID `bson:"_id,omitempty"`
-	Owner         string             `bson:"owner"`
-	SortedOptions []string           `bson:"sortedOptions"`
-	Timestamp     int64              `bson:"timestamp"`
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	Owner         string             `bson:"owner" json:"owner"`
+	SortedOptions []string           `bson:"sortedOptions" json:"sortedOptions"`
+	Timestamp     int64              `bson:"timestamp" json:"timestamp"`
 }
 
 type Room struct {
@@ -26,6 +26,6 @@ type Room struct {
 }
 
 type Vote struct {
-	Username string   `bson:"username"`
-	Votes    []string `bson:"votes"`
+	Username string         `bson:"username"`
+	Votes    map[string]int `bson:"votes"`
 }

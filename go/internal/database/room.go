@@ -75,11 +75,11 @@ func GetRoomById(ctx context.Context, roomID string) (*models.Room, error) {
 
 func AddParticipantToRoom(ctx context.Context, roomCode, username string) (bool, error) {
 	col := db.Collection(roomsCollection)
-	result, err := col.UpdateOne(ctx, bson.M{"code": roomCode, "state": "open"}, bson.M{"$addToSet": bson.M{"participants": username}})
+	_, err := col.UpdateOne(ctx, bson.M{"code": roomCode, "state": "open"}, bson.M{"$addToSet": bson.M{"participants": username}})
 	if err != nil {
 		return false, fmt.Errorf("failed to add participant: %w", err)
 	}
-	return result.ModifiedCount > 0, nil
+	return true, nil
 }
 
 func AddOptionToRoom(ctx context.Context, roomID, option string) (bool, error) {
@@ -95,7 +95,7 @@ func AddOptionToRoom(ctx context.Context, roomID, option string) (bool, error) {
 	return result.ModifiedCount > 0, nil
 }
 
-func SubmitUserVotes(ctx context.Context, roomID, username string, votes []string) (bool, error) {
+func SubmitUserVotes(ctx context.Context, roomID, username string, votes map[string]int) (bool, error) {
 	col := db.Collection(roomsCollection)
 	objID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
