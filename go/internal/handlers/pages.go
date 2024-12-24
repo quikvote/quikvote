@@ -54,14 +54,18 @@ func HomePageHandler(w http.ResponseWriter, r *http.Request) {
 func NewPageHandler(w http.ResponseWriter, r *http.Request) {
 	template := getPageTemplate("new.html")
 
+	roomCode := "HJKL"
+
 	data := PageData{
 		Title: "New Quikvote",
 		Data: struct {
 			RoomCode string
 			RoomUrl  string
+			IconUrl  string
 		}{
-			RoomCode: "HJKL",
+			RoomCode: roomCode,
 			RoomUrl:  "idk",
+			IconUrl:  "https://api.dicebear.com/9.x/icons/svg?seed=" + roomCode,
 		},
 	}
 
