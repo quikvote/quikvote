@@ -1,0 +1,37 @@
+{{define "header"}}
+{{if .IsHX }}
+    <header id="header" class="bg-blue-800 text-white px-4 py-3 flex justify-between items-center" hx-swap-oob="true">
+    {{end}}
+    <nav>
+        <ul class="list-none flex gap-4">
+            <li>
+                <a class="text-white text-xl font-medium underline decoration-transparent hover:text-blue-600"
+                    hx-boost="true" hx-target="#app" href="/">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <h1 class="text-xl font-bold font-sans non-italic">Create</h1>
+    {{if .IsHX }}
+</header>
+{{end}}
+{{end}}
+
+{{define "main"}}
+<div>
+    <!-- {roomCode !== '' && (
+            <img src={iconUrl} alt="icon" class="w-12 h-12 rounded-full" />
+          )} -->
+    <button
+        class="text-4xl text-gray-800 tracking-widest bg-white p-4 border-2 border-gray-800 rounded-lg block mt-4 w-full cursor-pointer relative hover:bg-gray-100 active:bg-gray-300">
+        <b>{{.RoomCode}}</b>
+        <span class="material-symbols-outlined">content_copy</span>
+        <!-- <span class={`room-code__toast ${copied ? 'room-code__toast--visible' : ''}`}>Copied</span> -->
+    </button>
+    <p class="room-code__note">Share your unique QuikVote with others!</p>
+</div>
+<button
+    class="block bg-blue-600 text-white p-4 rounded-md font-medium text-base border-none hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-default"
+    hx-get={{.RoomUrl}} hx-target="#app">Begin QuikVote</button>
+{{end}}

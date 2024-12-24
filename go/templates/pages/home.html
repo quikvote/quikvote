@@ -1,9 +1,33 @@
+{{define "header"}}
+{{if .IsHX }}
+    <header id="header" class="bg-blue-800 text-white px-4 py-3 flex justify-between items-center" hx-swap-oob="true">
+    {{end}}
+<h1 class="text-xl font-bold italic">QuikVote</h1>
+<nav>
+    <ul class="list-none flex gap-4">
+        <li>
+            <a class="text-white text-xl hover:text-blue-700 underline decoration-solid decoration-blue-700"
+                hx-boost="true" href='login' hx-target="#app" hx-push-url="true">
+                <span class="material-symbols-outlined">account_circle</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+    {{if .IsHX }}
+</header>
+{{end}}
+{{end}}
+
 {{define "main"}}
-<NavLink className="main__button" to="/new">New QuikVote</NavLink>
-<NavLink className="main__button" to="/join">Join QuikVote</NavLink>
-{{if not .currentUser}}
-<p className="home__p">
-  <NavLink className="home__link" to="/login">Login/Register</NavLink> to create
-  or join a QuikVote
+<button class="block bg-blue-600 text-white py-3 px-4 rounded-md text-lg cursor-pointer hover:bg-blue-800" hx-get="/new"
+    hx-target="#app" hx-target="#app" hx-push-url="true">New QuikVote</button>
+<button class="block bg-blue-600 text-white py-3 px-4 rounded-md text-lg cursor-pointer hover:bg-blue-800"
+    hx-get="/join" hx-target="#app" hx-push-url="true">Join QuikVote</button>
+{{if not .LoggedIn}}
+<p className="mt-5 text-base">
+    <a class="text-blue-800 font-bold no-underline" hx-boost="true" href="/login" hx-target="#app">Login/Register</a> to
+    create
+    or join a QuikVote
 </p>
-{{end}} {{end}}
+{{end}}
+{{end}}

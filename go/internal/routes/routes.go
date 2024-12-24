@@ -8,6 +8,10 @@ import (
 )
 
 func SetupRoutes(r *http.ServeMux) {
+	// pages
+	r.HandleFunc("GET /{$}", handlers.HomePageHandler)
+	r.HandleFunc("GET /new", handlers.NewPageHandler)
+
 	r.HandleFunc("POST /api/register", handlers.RegisterHandler)
 	r.HandleFunc("POST /api/login", handlers.LoginHandler)
 	r.HandleFunc("DELETE /api/logout", handlers.LogoutHandler)
