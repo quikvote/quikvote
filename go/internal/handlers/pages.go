@@ -104,3 +104,29 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 
 	sendLayoutResponse(w, r, template, data)
 }
+
+func ResultsPageHandler(w http.ResponseWriter, r *http.Request) {
+	template := getPageTemplate("results.html")
+
+	data := PageData{
+		Title: "Results",
+		Data: struct {
+			Results []VoteOption
+		}{
+			Results: []VoteOption{
+				{
+					Name:     "one",
+					Value:    21,
+					Disabled: false,
+				},
+				{
+					Name:     "two",
+					Value:    21,
+					Disabled: false,
+				},
+			},
+		},
+	}
+
+	sendLayoutResponse(w, r, template, data)
+}

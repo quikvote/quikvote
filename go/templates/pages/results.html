@@ -1,0 +1,22 @@
+{{define "header"}}
+<header id="header" hx-swap-oob="innerHTML">
+    <h1 class="text-xl font-bold font-sans non-italic">Results</h1>
+</header>
+{{end}}
+
+{{define "main"}}
+<ol class="list-none [counter-reset:item]">
+    {{range .Results}}
+    {{template "result" .}}
+    {{end}}
+</ol>
+<button
+    class="block bg-blue-600 text-white p-4 rounded-md font-medium text-base border-none hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-default"
+    hx-get="/" hx-target="#app" hx-push-url="true">Home</button>
+{{end}}
+
+{{define "result"}}
+<li
+    class="relative bg-white mb-2 ml-[45px] p-4 rounded-md text-xl shadow text-left before:content-[counter(item)] before:[counter-increment:item] before:absolute before:left-[-45px] before:top-1/2 before:-translate-y-1/2 before:bg-blue-600 before:text-white before:w-8 before:h-8 before:flex before:items-center before:justify-center before:rounded-full before:text-xl">
+    {{.Name}}</li>
+{{end}}
