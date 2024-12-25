@@ -64,8 +64,41 @@ func NewPageHandler(w http.ResponseWriter, r *http.Request) {
 			IconUrl  string
 		}{
 			RoomCode: roomCode,
-			RoomUrl:  "idk",
+			RoomUrl:  "/vote",
 			IconUrl:  "https://api.dicebear.com/9.x/icons/svg?seed=" + roomCode,
+		},
+	}
+
+	sendLayoutResponse(w, r, template, data)
+}
+
+type VoteOption struct {
+	Name     string
+	Value    int
+	Disabled bool
+}
+
+func VotePageHandler(w http.ResponseWriter, r *http.Request) {
+	template := getPageTemplate("vote.html")
+
+	roomCode := "HJKL"
+
+	data := PageData{
+		Title: "QuikVote",
+		Data: struct {
+			RoomCode string
+			Options  []VoteOption
+			Disabled bool
+		}{
+			RoomCode: roomCode,
+			Options: []VoteOption{
+				{
+					Name:     "one",
+					Value:    21,
+					Disabled: false,
+				},
+			},
+			Disabled: false,
 		},
 	}
 
