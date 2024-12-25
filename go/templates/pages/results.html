@@ -1,7 +1,11 @@
 {{define "header"}}
-<header id="header" hx-swap-oob="innerHTML">
+{{if .IsHX }}
+    <header id="header" hx-swap-oob="innerHTML">
+    {{end}}
     <h1 class="text-xl font-bold font-sans non-italic">Results</h1>
+    {{if .IsHX }}
 </header>
+{{end}}
 {{end}}
 
 {{define "main"}}

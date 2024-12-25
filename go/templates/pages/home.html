@@ -3,16 +3,6 @@
     <header id="header" hx-swap-oob="innerHTML">
     {{end}}
 <h1 class="text-xl font-bold italic">QuikVote</h1>
-<nav>
-    <ul class="list-none flex gap-4">
-        <li>
-            <a class="text-white text-xl hover:text-blue-700 underline decoration-solid decoration-blue-700"
-                hx-boost="true" href='login' hx-target="#app" hx-push-url="true">
-                <span class="material-symbols-outlined">account_circle</span>
-            </a>
-        </li>
-    </ul>
-</nav>
     {{if .IsHX }}
 </header>
 {{end}}
