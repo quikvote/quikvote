@@ -72,6 +72,29 @@ func NewPageHandler(w http.ResponseWriter, r *http.Request) {
 	sendLayoutResponse(w, r, template, data)
 }
 
+func JoinPageHandler(w http.ResponseWriter, r *http.Request) {
+	template := getPageTemplate("join.html")
+
+	roomCode := ""
+
+	data := PageData{
+		Title: "Join Quikvote",
+		Data: struct {
+			RoomCode  string
+			RoomUrl   string
+			IconUrl   string
+			MaxLength int
+		}{
+			RoomCode:  roomCode,
+			MaxLength: 4,
+			RoomUrl:   "/vote",
+			IconUrl:   "https://api.dicebear.com/9.x/icons/svg?seed=" + roomCode,
+		},
+	}
+
+	sendLayoutResponse(w, r, template, data)
+}
+
 type VoteOption struct {
 	Name     string
 	Value    int

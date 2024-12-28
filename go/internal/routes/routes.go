@@ -11,6 +11,7 @@ func SetupRoutes(r *http.ServeMux) {
 	// pages
 	r.HandleFunc("GET /{$}", handlers.HomePageHandler)
 	r.HandleFunc("GET /new", handlers.NewPageHandler)
+	r.HandleFunc("GET /join", handlers.JoinPageHandler)
 	r.HandleFunc("GET /vote", handlers.VotePageHandler)
 	r.HandleFunc("GET /results", handlers.ResultsPageHandler)
 
