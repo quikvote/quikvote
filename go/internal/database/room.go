@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"quikvote/internal/models"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -32,8 +33,14 @@ func CreateRoom(ctx context.Context, creatorUsername string) (*models.Room, erro
 		Owner:        creatorUsername,
 		Participants: []string{creatorUsername},
 		Options:      []string{},
-		Votes:        []models.Vote{},
-		State:        "open",
+		Votes: []models.Vote{
+			{
+				Username: creatorUsername,
+				Votes:    make(map[string]int),
+			},
+		},
+		State:     "open",
+		Timestamp: time.Now().UnixMilli(),
 	}
 	result, err := col.InsertOne(ctx, newRoom)
 	if err != nil {

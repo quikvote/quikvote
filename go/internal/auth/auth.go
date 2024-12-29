@@ -7,31 +7,57 @@ import (
 	"quikvote/internal/models"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const authCookieName = "token"
 
+type ctxKey string
+
+const UserCtx = ctxKey("user")
+
 func Middleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, err := GetUserFromRequest(r)
 		if err != nil || user == nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+			if err == http.ErrNoCookie {
+				SetAuthCookie(w, user.Token)
+			} else {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 		}
-		ctx := context.WithValue(r.Context(), "user", user)
+		ctx := context.WithValue(r.Context(), UserCtx, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 
+func newAnonUser(token string) *models.User {
+	if token == "" {
+		token = uuid.New().String()
+	}
+	return &models.User{
+		Username: token,
+		Token:    token,
+	}
+}
+
 func GetUserFromRequest(r *http.Request) (*models.User, error) {
-	c, err := r.Cookie("token")
+	c, err := r.Cookie(authCookieName)
 	if err != nil {
+		if err == http.ErrNoCookie {
+			user := newAnonUser("")
+			return user, err
+		}
 		return nil, err
 	}
 	user, err := database.GetUserByToken(r.Context(), c.Value)
 	if err != nil {
 		return nil, err
+	}
+	if user == nil {
+		user = newAnonUser(c.Value)
 	}
 	return user, nil
 }

@@ -16,13 +16,15 @@ type Result struct {
 }
 
 type Room struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty"`
-	Code         string             `bson:"code"`
-	Owner        string             `bson:"owner"`
-	Participants []string           `bson:"participants"`
-	Options      []string           `bson:"options"`
-	Votes        []Vote             `bson:"votes"`
-	State        string             `bson:"state"`
+	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	Code          string             `bson:"code"`
+	Owner         string             `bson:"owner"`
+	Participants  []string           `bson:"participants"`
+	Options       []string           `bson:"options"`
+	Votes         []Vote             `bson:"votes"`
+	LockedInUsers []string           `bson:"lockedInUsers"`
+	State         string             `bson:"state"`
+	Timestamp     int64              `bson:"timestamp" json:"timestamp"`
 }
 
 type Vote struct {

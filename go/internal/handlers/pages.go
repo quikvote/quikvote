@@ -4,6 +4,9 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"quikvote/internal/auth"
+	"quikvote/internal/database"
+	"quikvote/internal/models"
 )
 
 var templateDir = "templates"
@@ -54,7 +57,11 @@ func HomePageHandler(w http.ResponseWriter, r *http.Request) {
 func NewPageHandler(w http.ResponseWriter, r *http.Request) {
 	template := getPageTemplate("new.html")
 
-	roomCode := "HJKL"
+	room, err := database.CreateRoom(r.Context(), r.Context().Value(auth.UserCtx).(*models.User).Username)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
 
 	data := PageData{
 		Title: "New Quikvote",
@@ -62,10 +69,11 @@ func NewPageHandler(w http.ResponseWriter, r *http.Request) {
 			RoomCode string
 			RoomUrl  string
 			IconUrl  string
+			Room     models.Room
 		}{
-			RoomCode: roomCode,
-			RoomUrl:  "/vote",
-			IconUrl:  "https://api.dicebear.com/9.x/icons/svg?seed=" + roomCode,
+			RoomUrl: "/vote?room=" + room.ID.Hex(),
+			IconUrl: "https://api.dicebear.com/9.x/icons/svg?seed=" + room.Code,
+			Room:    *room,
 		},
 	}
 
@@ -104,28 +112,73 @@ type VoteOption struct {
 func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 	template := getPageTemplate("vote.html")
 
-	roomCode := "HJKL"
-
-	data := PageData{
-		Title: "QuikVote",
-		Data: struct {
-			RoomCode string
-			Options  []VoteOption
-			Disabled bool
-		}{
-			RoomCode: roomCode,
-			Options: []VoteOption{
-				{
-					Name:     "one",
-					Value:    21,
-					Disabled: false,
-				},
-			},
-			Disabled: false,
-		},
+	roomId := r.URL.Query().Get("room")
+	if roomId == "" {
+		http.Error(w, "Must include room query parameter", http.StatusBadRequest)
+		return
 	}
 
-	sendLayoutResponse(w, r, template, data)
+	room, err := database.GetRoomById(r.Context(), roomId)
+	if err != nil {
+		http.Error(w, "Room does not exist", http.StatusBadRequest)
+		return
+	}
+
+	user := r.Context().Value(auth.UserCtx).(*models.User)
+	isParticipant := false
+	for _, username := range room.Participants {
+		if username == user.Username {
+			isParticipant = true
+			break
+		}
+	}
+	if !isParticipant {
+		http.Error(w, "You must join this room first before voting", http.StatusBadRequest)
+		return
+	}
+
+	data := struct {
+		Room     *models.Room
+		Options  []VoteOption
+		Disabled bool
+	}{
+		Room: room,
+	}
+
+	for _, username := range room.LockedInUsers {
+		if username == user.Username {
+			data.Disabled = true
+		}
+	}
+
+	var uservotes map[string]int
+	for _, v := range room.Votes {
+		if v.Username == user.Username {
+			uservotes = v.Votes
+			break
+		}
+	}
+	if uservotes == nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+
+	}
+
+	data.Options = make([]VoteOption, len(room.Options))
+	for i, opt := range room.Options {
+		data.Options[i] = VoteOption{
+			Name:     opt,
+			Value:    uservotes[opt],
+			Disabled: data.Disabled,
+		}
+	}
+
+	pageData := PageData{
+		Title: "QuikVote",
+		Data:  data,
+	}
+
+	sendLayoutResponse(w, r, template, pageData)
 }
 
 func ResultsPageHandler(w http.ResponseWriter, r *http.Request) {

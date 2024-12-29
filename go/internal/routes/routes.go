@@ -9,11 +9,11 @@ import (
 
 func SetupRoutes(r *http.ServeMux) {
 	// pages
-	r.HandleFunc("GET /{$}", handlers.HomePageHandler)
-	r.HandleFunc("GET /new", handlers.NewPageHandler)
-	r.HandleFunc("GET /join", handlers.JoinPageHandler)
-	r.HandleFunc("GET /vote", handlers.VotePageHandler)
-	r.HandleFunc("GET /results", handlers.ResultsPageHandler)
+	r.HandleFunc("GET /{$}", auth.Middleware(handlers.HomePageHandler))
+	r.HandleFunc("GET /new", auth.Middleware(handlers.NewPageHandler))
+	r.HandleFunc("GET /join", auth.Middleware(handlers.JoinPageHandler))
+	r.HandleFunc("GET /vote", auth.Middleware(handlers.VotePageHandler))
+	r.HandleFunc("GET /results", auth.Middleware(handlers.ResultsPageHandler))
 
 	r.HandleFunc("POST /api/register", handlers.RegisterHandler)
 	r.HandleFunc("POST /api/login", handlers.LoginHandler)
