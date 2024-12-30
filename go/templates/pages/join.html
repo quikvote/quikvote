@@ -19,7 +19,7 @@
 {{end}}
 
 {{define "main"}}
-<form class="flex flex-col gap-2">
+<form class="flex flex-col gap-2" hx-post="/api/join">
     <img id="icon" class="w-32 h-32 rounded-full mx-auto" src={{.IconUrl}} alt="icon" />
     <p>Make sure this icon matches the QuikVote that you want to join</p>
     <input class="text-xl p-2 border-2 border-gray-800 rounded-lg mb-4 text-center w-full leading-6" id="code"
@@ -30,7 +30,7 @@
                 set #icon.src to '{{.IconUrl}}' + it" />
     <button
         class="block bg-blue-600 text-white p-4 rounded-md font-medium text-base border-none hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-default"
-        hx-get={{.RoomUrl}} hx-target="#app" hx-push-url="true">Join QuikVote</button>
+        >Join QuikVote</button>
 </form>
 </main>
 {{end}}

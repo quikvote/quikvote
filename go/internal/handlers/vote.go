@@ -5,6 +5,7 @@ import (
 	"quikvote/internal/auth"
 	"quikvote/internal/database"
 	"quikvote/internal/models"
+	"strconv"
 )
 
 func IncreaseVoteHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,25 +24,13 @@ func IncreaseVoteHandler(w http.ResponseWriter, r *http.Request) {
 
 	option := r.PathValue("option")
 
-	isParticipant := false
-	for _, username := range room.Participants {
-		if username == user.Username {
-			isParticipant = true
-			break
-		}
-	}
+	isParticipant := room.IncludesUser(user.Username)
 	if !isParticipant {
 		http.Error(w, "You must join this room first before voting", http.StatusBadRequest)
 		return
 	}
 
-	var uservotes map[string]int
-	for _, v := range room.Votes {
-		if v.Username == user.Username {
-			uservotes = v.Votes
-			break
-		}
-	}
+	uservotes := room.GetUserVote(user.Username)
 	if uservotes == nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -59,6 +48,6 @@ func IncreaseVoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uservotes[option] = uservotes[option] + 1
-	w.Write([]byte("1"))
+	uservotes.Votes[option] = uservotes.Votes[option] + 1
+	w.Write([]byte(strconv.Itoa(uservotes.Votes[option])))
 }

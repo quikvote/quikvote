@@ -29,16 +29,16 @@ func generateRandomRoomCode() string {
 func CreateRoom(ctx context.Context, creatorUsername string) (*models.Room, error) {
 	col := db.Collection(roomsCollection)
 	newRoom := models.Room{
-		Code:         generateRandomRoomCode(),
-		Owner:        creatorUsername,
-		Participants: []string{creatorUsername},
-		Options:      []string{},
-		Votes: []models.Vote{
+		Code:  generateRandomRoomCode(),
+		Owner: creatorUsername,
+		Participants: []models.UserVote{
 			{
 				Username: creatorUsername,
+				LockedIn: false,
 				Votes:    make(map[string]int),
 			},
 		},
+		Options:   []string{},
 		State:     "open",
 		Timestamp: time.Now().UnixMilli(),
 	}
@@ -82,7 +82,12 @@ func GetRoomById(ctx context.Context, roomID string) (*models.Room, error) {
 
 func AddParticipantToRoom(ctx context.Context, roomCode, username string) (bool, error) {
 	col := db.Collection(roomsCollection)
-	_, err := col.UpdateOne(ctx, bson.M{"code": roomCode, "state": "open"}, bson.M{"$addToSet": bson.M{"participants": username}})
+	userVote := models.UserVote{
+		Username: username,
+		LockedIn: false,
+		Votes:    make(map[string]int),
+	}
+	_, err := col.UpdateOne(ctx, bson.M{"code": roomCode, "state": "open"}, bson.M{"$addToSet": bson.M{"participants": userVote}})
 	if err != nil {
 		return false, fmt.Errorf("failed to add participant: %w", err)
 	}
@@ -102,20 +107,20 @@ func AddOptionToRoom(ctx context.Context, roomID, option string) (bool, error) {
 	return result.ModifiedCount > 0, nil
 }
 
-func SubmitUserVotes(ctx context.Context, roomID, username string, votes map[string]int) (bool, error) {
-	col := db.Collection(roomsCollection)
-	objID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return false, fmt.Errorf("invalid room ID: %w", err)
-	}
-	filter := bson.M{"_id": objID, "votes.username": bson.M{"$ne": username}}
-	update := bson.M{"$push": bson.M{"votes": models.Vote{Username: username, Votes: votes}}}
-	result, err := col.UpdateOne(ctx, filter, update)
-	if err != nil {
-		return false, fmt.Errorf("failed to submit votes: %w", err)
-	}
-	return result.ModifiedCount > 0, nil
-}
+// func SubmitUserVotes(ctx context.Context, roomID, username string, votes map[string]int) (bool, error) {
+// 	col := db.Collection(roomsCollection)
+// 	objID, err := primitive.ObjectIDFromHex(roomID)
+// 	if err != nil {
+// 		return false, fmt.Errorf("invalid room ID: %w", err)
+// 	}
+// 	filter := bson.M{"_id": objID, "votes.username": bson.M{"$ne": username}}
+// 	update := bson.M{"$push": bson.M{"votes": models.Vote{Username: username, Votes: votes}}}
+// 	result, err := col.UpdateOne(ctx, filter, update)
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to submit votes: %w", err)
+// 	}
+// 	return result.ModifiedCount > 0, nil
+// }
 
 func CloseRoom(ctx context.Context, roomID string) (bool, error) {
 	col := db.Collection(roomsCollection)

@@ -14,20 +14,3 @@ type Result struct {
 	SortedOptions []string           `bson:"sortedOptions" json:"sortedOptions"`
 	Timestamp     int64              `bson:"timestamp" json:"timestamp"`
 }
-
-type Room struct {
-	ID            primitive.ObjectID `bson:"_id,omitempty"`
-	Code          string             `bson:"code"`
-	Owner         string             `bson:"owner"`
-	Participants  []string           `bson:"participants"`
-	Options       []string           `bson:"options"`
-	Votes         []Vote             `bson:"votes"`
-	LockedInUsers []string           `bson:"lockedInUsers"`
-	State         string             `bson:"state"`
-	Timestamp     int64              `bson:"timestamp" json:"timestamp"`
-}
-
-type Vote struct {
-	Username string         `bson:"username"`
-	Votes    map[string]int `bson:"votes"`
-}

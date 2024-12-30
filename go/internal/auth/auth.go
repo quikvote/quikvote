@@ -77,7 +77,6 @@ func SetAuthCookie(w http.ResponseWriter, authToken string) {
 		Secure:   true, // TODO: Set to true in production (HTTPS)
 		HttpOnly: true, // Prevents client-side JavaScript access
 		SameSite: http.SameSiteStrictMode,
-		Expires:  time.Now().Add(12 * time.Hour),
 		Path:     "/",
 	}
 	http.SetCookie(w, cookie)

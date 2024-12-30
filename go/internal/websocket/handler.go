@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"sort"
 
 	"quikvote/internal/auth"
 	"quikvote/internal/database"
@@ -144,7 +143,7 @@ func handleNewOption(ctx context.Context, connection *Connection, event map[stri
 		log.Printf("connection %s: room is closed\n", connection.ID)
 		return
 	}
-	if !contains(room.Participants, connection.User) {
+	if !room.IncludesUser(connection.User) {
 		log.Printf("connection %s: room does not include user %s\n", connection.ID, connection.User)
 		return
 	}
@@ -220,70 +219,70 @@ func handleLockIn(ctx context.Context, connection *Connection, message []byte) {
 		return
 	}
 
-	if !contains(room.Participants, connection.User) {
+	if !room.IncludesUser(connection.User) {
 		log.Printf("connection %s: room does not include user %s\n", connection.ID, connection.User)
 		return
 	}
 
-	_, err = database.SubmitUserVotes(ctx, roomId, connection.User, stringVotes)
-	if err != nil {
-		log.Printf("connection %s: database error\n", connection.ID)
-		return
-	}
+	// _, err = database.SubmitUserVotes(ctx, roomId, connection.User, stringVotes)
+	// if err != nil {
+	// 	log.Printf("connection %s: database error\n", connection.ID)
+	// 	return
+	// }
 
-	new_room, err := database.GetRoomById(ctx, roomId)
-	if err != nil {
-		log.Printf("connection %s: database error\n", connection.ID)
-		return
-	}
-	if len(new_room.Votes) == len(new_room.Participants) {
-		// all users have voted
-		_, err = database.CloseRoom(ctx, roomId)
-		if err != nil {
-			log.Printf("connection %s: database error\n", connection.ID)
-			return
-		}
-		// Tally up the votes
-		voteCounts := make(map[string]int, 0)
-		for _, option := range room.Options {
-			voteCounts[option] = 0
-		}
-		for _, voter := range new_room.Votes {
-			for vote, count := range voter.Votes {
-				voteCounts[vote] += count
-			}
-		}
+	// new_room, err := database.GetRoomById(ctx, roomId)
+	// if err != nil {
+	// 	log.Printf("connection %s: database error\n", connection.ID)
+	// 	return
+	// }
+	// if len(new_room.Votes) == len(new_room.Participants) {
+	// 	// all users have voted
+	// 	_, err = database.CloseRoom(ctx, roomId)
+	// 	if err != nil {
+	// 		log.Printf("connection %s: database error\n", connection.ID)
+	// 		return
+	// 	}
+	// 	// Tally up the votes
+	// 	voteCounts := make(map[string]int, 0)
+	// 	for _, option := range room.Options {
+	// 		voteCounts[option] = 0
+	// 	}
+	// 	for _, voter := range new_room.Votes {
+	// 		for vote, count := range voter.Votes {
+	// 			voteCounts[vote] += count
+	// 		}
+	// 	}
 
-		// Convert voteCounts to a sortable slice of structs
-		type kv struct {
-			Key   string
-			Value int
-		}
-		var ss []kv
-		for k, v := range voteCounts {
-			ss = append(ss, kv{k, v})
-		}
+	// 	// Convert voteCounts to a sortable slice of structs
+	// 	type kv struct {
+	// 		Key   string
+	// 		Value int
+	// 	}
+	// 	var ss []kv
+	// 	for k, v := range voteCounts {
+	// 		ss = append(ss, kv{k, v})
+	// 	}
 
-		// Sort the slice by Value (descending) and then by Key (ascending)
-		sort.SliceStable(ss, func(i, j int) bool {
-			if ss[i].Value != ss[j].Value {
-				return ss[i].Value > ss[j].Value // Descending by value
-			}
-			return ss[i].Key < ss[j].Key // Ascending by key (if values are equal)
-		})
+	// 	// Sort the slice by Value (descending) and then by Key (ascending)
+	// 	sort.SliceStable(ss, func(i, j int) bool {
+	// 		if ss[i].Value != ss[j].Value {
+	// 			return ss[i].Value > ss[j].Value // Descending by value
+	// 		}
+	// 		return ss[i].Key < ss[j].Key // Ascending by key (if values are equal)
+	// 	})
 
-		// Extract the sorted options
-		sortedOptions := make([]string, len(ss))
-		for i, kv := range ss {
-			sortedOptions[i] = kv.Key
-		}
-		result, err := database.CreateResult(ctx, connection.User, sortedOptions)
-		if err != nil {
-			log.Printf("connection %s: database error\n", connection.ID)
-			return
-		}
-		sendJsonToRoom(new_room, map[string]interface{}{"type": "results-available", "id": result.ID.Hex()})
-	}
+	// 	// Extract the sorted options
+	// 	sortedOptions := make([]string, len(ss))
+	// 	for i, kv := range ss {
+	// 		sortedOptions[i] = kv.Key
+	// 	}
+	// 	result, err := database.CreateResult(ctx, connection.User, sortedOptions)
+	// 	if err != nil {
+	// 		log.Printf("connection %s: database error\n", connection.ID)
+	// 		return
+	// 	}
+	// 	sendJsonToRoom(new_room, map[string]interface{}{"type": "results-available", "id": result.ID.Hex()})
+	// }
 }
 
 func handleCloseRoom(ctx context.Context, connection *Connection, event map[string]interface{}) {
@@ -332,7 +331,7 @@ func handleCloseRoom(ctx context.Context, connection *Connection, event map[stri
 func sendJsonToRoom(room *models.Room, message map[string]interface{}) {
 	messageJson, _ := json.Marshal(message)
 	for _, c := range connections {
-		if contains(room.Participants, c.User) {
+		if room.IncludesUser(c.User) {
 			c.WS.WriteMessage(websocket.TextMessage, messageJson)
 		}
 	}
@@ -340,7 +339,7 @@ func sendJsonToRoom(room *models.Room, message map[string]interface{}) {
 
 func sendHtmlToRoom(room *models.Room, html []byte) {
 	for _, c := range connections {
-		if contains(room.Participants, c.User) {
+		if room.IncludesUser(c.User) {
 			c.WS.WriteMessage(websocket.TextMessage, html)
 		}
 	}

@@ -3,11 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"quikvote/internal/auth"
 	"quikvote/internal/database"
 	"quikvote/internal/models"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,68 +28,58 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"id": newRoom.ID.Hex(), "code": newRoom.Code})
 }
 
-type RoomResponse struct {
-	ID           primitive.ObjectID `json:"id"`
-	Code         string             `json:"code"`
-	Owner        string             `json:"owner"`
-	Participants []string           `json:"participants"`
-	Options      []string           `json:"options"`
-	Votes        []models.Vote      `json:"votes"`
-	State        string             `json:"state"`
-	IsOwner      bool               `json:"isOwner"`
-}
+// func GetRoomHandler(w http.ResponseWriter, r *http.Request) {
+// 	ctx := r.Context()
+// 	user, ok := ctx.Value("user").(*models.User)
+// 	if !ok {
+// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+// 	roomId := r.PathValue("id")
 
-func GetRoomHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user, ok := ctx.Value("user").(*models.User)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	roomId := r.PathValue("id")
+// 	room, err := database.GetRoomById(ctx, roomId)
+// 	if err != nil {
+// 		http.Error(w, "Database error", http.StatusInternalServerError)
+// 		return
+// 	}
 
-	room, err := database.GetRoomById(ctx, roomId)
-	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
+// 	if room == nil {
+// 		http.Error(w, fmt.Sprintf("Room %s does not exist", roomId), http.StatusNotFound)
+// 		return
+// 	}
 
-	if room == nil {
-		http.Error(w, fmt.Sprintf("Room %s does not exist", roomId), http.StatusNotFound)
-		return
-	}
+// 	if room.State != "open" {
+// 		http.Error(w, "Room is not open", http.StatusConflict)
+// 		return
+// 	}
 
-	if room.State != "open" {
-		http.Error(w, "Room is not open", http.StatusConflict)
-		return
-	}
+// 	w.WriteHeader(http.StatusOK)
+// 	response := interface{}{
+// 		ID:           room.ID,
+// 		Code:         room.Code,
+// 		Owner:        room.Owner,
+// 		Participants: room.Participants,
+// 		Options:      room.Options,
+// 		Votes:        room.Votes,
+// 		State:        room.State,
+// 		IsOwner:      room.Owner == user.Username,
+// 	}
 
-	w.WriteHeader(http.StatusOK)
-	response := RoomResponse{
-		ID:           room.ID,
-		Code:         room.Code,
-		Owner:        room.Owner,
-		Participants: room.Participants,
-		Options:      room.Options,
-		Votes:        room.Votes,
-		State:        room.State,
-		IsOwner:      room.Owner == user.Username,
-	}
-
-	json.NewEncoder(w).Encode(response)
-}
+// 	json.NewEncoder(w).Encode(response)
+// }
 
 func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, ok := ctx.Value("user").(*models.User)
+	user, ok := ctx.Value(auth.UserCtx).(*models.User)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	roomCode := r.PathValue("code")
+	roomCode := r.FormValue("code")
 
 	room, err := database.GetRoomByCode(ctx, roomCode)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
@@ -106,13 +96,21 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	success, err := database.AddParticipantToRoom(ctx, roomCode, user.Username)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
 	if success {
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{"id": room.ID.Hex()})
+		location := map[string]string{"path": "/vote?room=" + room.ID.Hex(), "target": "#app"}
+		js, err := json.Marshal(location)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Interval Server Error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("HX-Location", string(js))
+		w.Write(js)
 	} else {
 		http.Error(w, "Error adding participant", http.StatusInternalServerError)
 	}
@@ -152,7 +150,7 @@ func AddOptionToRoomHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Room is not open", http.StatusConflict)
 		return
 	}
-	if !contains(room.Participants, user.Username) {
+	if !room.IncludesUser(user.Username) {
 		http.Error(w, "User is not allowed to add options to room", http.StatusForbidden)
 		return
 	}

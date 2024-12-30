@@ -132,8 +132,8 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isParticipant := false
-	for _, username := range room.Participants {
-		if username == user.Username {
+	for _, userVote := range room.Participants {
+		if userVote.Username == user.Username {
 			isParticipant = true
 			break
 		}
@@ -153,16 +153,12 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 		RoomID: roomId,
 	}
 
-	for _, username := range room.LockedInUsers {
-		if username == user.Username {
-			data.Disabled = true
-		}
-	}
+	data.Disabled = room.IsLockedIn(user.Username)
 
 	var uservotes map[string]int
-	for _, v := range room.Votes {
-		if v.Username == user.Username {
-			uservotes = v.Votes
+	for _, userVote := range room.Participants {
+		if userVote.Username == user.Username {
+			uservotes = userVote.Votes
 			break
 		}
 	}
@@ -177,7 +173,6 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 	for i, opt := range room.Options {
 		val := uservotes[opt]
 		data.Options[i] = VoteOption{
-
 			Name:             opt,
 			Value:            val,
 			IncreaseDisabled: data.Disabled || val == MAX_VAL,
