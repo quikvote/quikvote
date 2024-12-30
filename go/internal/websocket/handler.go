@@ -1,14 +1,18 @@
 package websocket
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 	"sort"
 
 	"quikvote/internal/auth"
 	"quikvote/internal/database"
+	"quikvote/internal/handlers"
 	"quikvote/internal/models"
 
 	"github.com/google/uuid"
@@ -122,7 +126,7 @@ func handleNewOption(ctx context.Context, connection *Connection, event map[stri
 		return
 	}
 	option, ok := event["option"].(string)
-	if !ok {
+	if !ok || len(option) == 0 {
 		log.Printf("connection %s: invalid option\n", connection.ID)
 		return
 	}
@@ -160,7 +164,19 @@ func handleNewOption(ctx context.Context, connection *Connection, event map[stri
 		return
 	}
 
-	sendMessageToRoom(room, map[string]interface{}{"type": "options", "options": room.Options})
+	temp := template.Must(template.ParseFiles(
+		filepath.Join("templates", "pages", "vote.html"),
+	))
+	bytesCache := new(bytes.Buffer)
+	temp.ExecuteTemplate(bytesCache, "new_option", handlers.VoteOption{
+		Name:             option,
+		Value:            0,
+		IncreaseDisabled: false,
+		DecreaseDisabled: true,
+	})
+
+	// sendJsonToRoom(room, map[string]interface{}{"type": "options", "options": room.Options})
+	sendHtmlToRoom(room, bytesCache.Bytes())
 }
 
 type LockInEvent struct {
@@ -266,7 +282,7 @@ func handleLockIn(ctx context.Context, connection *Connection, message []byte) {
 			log.Printf("connection %s: database error\n", connection.ID)
 			return
 		}
-		sendMessageToRoom(new_room, map[string]interface{}{"type": "results-available", "id": result.ID.Hex()})
+		sendJsonToRoom(new_room, map[string]interface{}{"type": "results-available", "id": result.ID.Hex()})
 	}
 }
 
@@ -310,14 +326,22 @@ func handleCloseRoom(ctx context.Context, connection *Connection, event map[stri
 		log.Printf("connection %s: database error\n", connection.ID)
 		return
 	}
-	sendMessageToRoom(room, map[string]interface{}{"type": "results-available", "id": result.ID.Hex()})
+	sendJsonToRoom(room, map[string]interface{}{"type": "results-available", "id": result.ID.Hex()})
 }
 
-func sendMessageToRoom(room *models.Room, message map[string]interface{}) {
+func sendJsonToRoom(room *models.Room, message map[string]interface{}) {
 	messageJson, _ := json.Marshal(message)
 	for _, c := range connections {
 		if contains(room.Participants, c.User) {
 			c.WS.WriteMessage(websocket.TextMessage, messageJson)
+		}
+	}
+}
+
+func sendHtmlToRoom(room *models.Room, html []byte) {
+	for _, c := range connections {
+		if contains(room.Participants, c.User) {
+			c.WS.WriteMessage(websocket.TextMessage, html)
 		}
 	}
 }

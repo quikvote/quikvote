@@ -20,7 +20,8 @@ func SetupRoutes(r *http.ServeMux) {
 	r.HandleFunc("DELETE /api/logout", handlers.LogoutHandler)
 	r.HandleFunc("GET /api/me", auth.Middleware(handlers.GetUserHandler))
 
-	// Secure routes (using middleware)
+	r.HandleFunc("POST /api/room/{id}/increase/{option}", auth.Middleware(handlers.IncreaseVoteHandler))
+
 	r.HandleFunc("POST /api/room", auth.Middleware(handlers.CreateRoomHandler))
 	r.HandleFunc("GET /api/room/{id}", auth.Middleware(handlers.GetRoomHandler))
 	r.HandleFunc("POST /api/room/{code}/join", auth.Middleware(handlers.JoinRoomHandler))

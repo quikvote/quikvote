@@ -104,9 +104,11 @@ func JoinPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type VoteOption struct {
-	Name     string
-	Value    int
-	Disabled bool
+	Key              string
+	Name             string
+	Value            int
+	IncreaseDisabled bool
+	DecreaseDisabled bool
 }
 
 func VotePageHandler(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +126,11 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := r.Context().Value(auth.UserCtx).(*models.User)
+	user, ok := r.Context().Value(auth.UserCtx).(*models.User)
+	if !ok {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	isParticipant := false
 	for _, username := range room.Participants {
 		if username == user.Username {
@@ -139,10 +145,12 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Room     *models.Room
+		RoomID   string
 		Options  []VoteOption
 		Disabled bool
 	}{
-		Room: room,
+		Room:   room,
+		RoomID: roomId,
 	}
 
 	for _, username := range room.LockedInUsers {
@@ -161,15 +169,19 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 	if uservotes == nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-
 	}
 
+	MAX_VAL := 10
+	MIN_VAL := 0
 	data.Options = make([]VoteOption, len(room.Options))
 	for i, opt := range room.Options {
+		val := uservotes[opt]
 		data.Options[i] = VoteOption{
-			Name:     opt,
-			Value:    uservotes[opt],
-			Disabled: data.Disabled,
+
+			Name:             opt,
+			Value:            val,
+			IncreaseDisabled: data.Disabled || val == MAX_VAL,
+			DecreaseDisabled: data.Disabled || val == MIN_VAL,
 		}
 	}
 
@@ -181,24 +193,27 @@ func VotePageHandler(w http.ResponseWriter, r *http.Request) {
 	sendLayoutResponse(w, r, template, pageData)
 }
 
+type VoteResult struct {
+	Name  string
+	Value int
+}
+
 func ResultsPageHandler(w http.ResponseWriter, r *http.Request) {
 	template := getPageTemplate("results.html")
 
 	data := PageData{
 		Title: "Results",
 		Data: struct {
-			Results []VoteOption
+			Results []VoteResult
 		}{
-			Results: []VoteOption{
+			Results: []VoteResult{
 				{
-					Name:     "one",
-					Value:    21,
-					Disabled: false,
+					Name:  "one",
+					Value: 21,
 				},
 				{
-					Name:     "two",
-					Value:    21,
-					Disabled: false,
+					Name:  "two",
+					Value: 21,
 				},
 			},
 		},
