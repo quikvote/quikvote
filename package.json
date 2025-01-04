@@ -12,10 +12,12 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
     "vite": "^5.4.10"
   },
   "dependencies": {
     "dayjs": "^1.11.13",
+    "js-cookie": "^3.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.27.0",

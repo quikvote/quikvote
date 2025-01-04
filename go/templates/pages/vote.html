@@ -1,0 +1,61 @@
+{{define "header"}}
+{{if .IsHX }}
+<header id="header" hx-swap-oob="innerHTML">
+    {{end}}
+    <h3>{{.Data.Room.Code}}</h3>
+    <span class="material-symbols-outlined">content_copy</span>
+    <span class="">Copied</span>
+    {{if .IsHX }}
+</header>
+{{end}}
+{{end}}
+
+{{define "main"}}
+<div class="flex flex-col flex-grow gap-4" hx-ext="ws" ws-connect="/ws">
+    <ul id="options" class="list-none p-0 mb-4 flex-1">
+        {{range .Options}}
+        {{template "option" .}}
+        {{end}}
+    </ul>
+    <form class="flex justify-center mb-4" ws-send 
+    _="on submit set #option.value to ''">
+        <input type="hidden" id="event-type" name="type" value="new_option" />
+        <input type="hidden" name="room" value="{{.RoomID}}" />
+        <input id="option" class="p-4 border-2 border-gray-300 rounded-l-md flex-1 text-base" type="text" name="option"
+            placeholder="Add to list" {{if .Disabled}} disabled {{end}} />
+        <button
+            class='py-2 px-4 border-none bg-blue-600 text-white cursor-pointer rounded-r-md transition-colors duration-300 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-default disabled:hover:bg-gray-400'
+            type="submit" {{if .Disabled}} disabled {{end}}>
+            <span class="material-symbols-outlined">add</span>
+        </button>
+    </form>
+    <button
+        class="block bg-blue-600 text-white p-4 rounded-md font-medium text-base border-none hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-default"
+        hx-get="/results" hx-target="#app" hx-push-url="true">Lock in vote</button>
+</div>
+{{end}}
+
+{{define "option"}}
+<li class="flex justify-between items-center p-4 text-base mb-2 bg-white rounded-md shadow">{{.Name}}
+    <div class="flex gap-2 items-center">
+        <button
+            class="bg-white text-black border-none py-1 px-2 rounded-md cursor-pointer transition-colors duration-300 flex items-center hover:bg-blue-200 disabled:text-gray-400 disabled:cursor-default disabled:hover:bg-white"
+            hx-post="/api/room/{{.RoomID}}/increase/{{.Key}}" hx-target="#{{.Key}}-value" hx-swap="textContent"
+            {{if .DecreaseDisabled }} disabled {{end}}>
+            <span class="material-symbols-outlined">arrow_downward</span>
+        </button>
+        <span id="{{.Key}}-value" class="text-xl w-[1.2em]">{{.Value}}</span>
+        <button
+            class="bg-white text-black border-none py-1 px-2 rounded-md cursor-pointer transition-colors duration-300 flex items-center hover:bg-blue-200 disabled:text-gray-400 disabled:cursor-default disabled:hover:bg-white"
+            {{if .IncreaseDisabled }} disabled {{end}}>
+            <span class="material-symbols-outlined">arrow_upward</span>
+        </button>
+    </div>
+</li>
+{{end}}
+
+{{define "new_option"}}
+<ul id="options" hx-swap-oob="beforeend">
+    {{template "option" .}}
+</ul>
+{{end}}

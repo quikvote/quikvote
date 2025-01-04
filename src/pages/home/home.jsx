@@ -17,7 +17,7 @@ export default function Home() {
         setRandomCard(`${card.value.toLowerCase()} of ${card.suit.toLowerCase()}`)
       }
     }
-    fetchFact().catch(console.error)
+    // fetchFact().catch(console.error)
   }, [])
   return (
     <>

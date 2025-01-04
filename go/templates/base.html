@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/htmx-ext-ws@2.0.1/ws.js"></script>
+    <script src="https://unpkg.com/hyperscript.org@0.9.13"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <link href="/public/css/output.css" rel="stylesheet">
+    <title>{{.Title}}</title>
+</head>
+
+<body class="font-sans text-gray-700 leading-6 flex flex-col h-screen bg-gray-100">
+    <header id="header" class="bg-blue-800 text-white px-4 py-3 flex justify-between items-center">
+        {{ template "header" .}}
+    </header>
+    <main id="app"
+        class="px-4 py-5 text-center flex flex-col flex-grow gap-4 overflow-y-auto max-w-3xl min-w-[550px] mx-auto">
+        {{ template "main" .Data }}
+    </main>
+    <footer class="bg-blue-800 text-white px-4 py-3 flex justify-between items-center">
+        <span class="text-reset">Josh Hendershot</span>
+        <a class="text-white hover:underline underline-offset-2 decoration-white"
+            href="https://github.com/henderj/startup">Github</a>
+    </footer>
+</body>
