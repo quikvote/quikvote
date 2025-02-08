@@ -18,6 +18,7 @@ effortlessly with **QuikVote**—the quick, easy solution to group indecision!
 ## Development
 
 Copy `service/dbconfig.temp.json` to `service/dbconfig.json` and fill in the `url` field.
+Paste in the connection string to your MongoDB instance.
 It should look something like `mongodb+srv://username:password@host...`.
 
 ### Backend
