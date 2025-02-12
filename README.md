@@ -45,11 +45,11 @@ This will start `vite` in development mode and it will expect a backend running 
 
 ```mermaid
 graph TD;
-    Home["Home\nhome/home.jsx"] --> Create["Create\nnew/new.jsx"];
-    Home --> Join["Join\njoin/join.jsx"];
-    Create --> Vote["Vote\nvote/vote.jsx\nvote/websocket_handler.js"];
+    Home["Home<br />home/home.jsx"] --> Create["Create<br />new/new.jsx"];
+    Home --> Join["Join<br />join/join.jsx"];
+    Create --> Vote["Vote<br />vote/vote.jsx<br />vote/websocket_handler.js"];
     Join --> Vote;
-    Vote --> Results["Results\nresults/results.jsx"];
+    Vote --> Results["Results<br />results/results.jsx"];
     Results --> Home;
 ```
 
