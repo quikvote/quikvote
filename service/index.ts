@@ -1,9 +1,12 @@
-const express = require('express');
-const bcrypt = require('bcrypt')
-const cookieParser = require('cookie-parser')
-const DB = require('./database.js');
-const { peerProxy } = require('./peerProxy.js');
-const { calculateVoteResult } = require('./calculateVoteResult.js')
+import express from 'express';
+import bcrypt from 'bcrypt';
+import cookieParser from 'cookie-parser';
+import PeerProxy from './peerProxy';
+import calculateVoteResult from './calculateVoteResult';
+// import { calculateVoteResult } from './calculateVoteResult.js';
+import UserMongoDB from './database/mongoDb/User';
+import RoomMongoDB from './database/mongoDb/Room';
+import HistoryMongoDB from './database/mongoDb/History';
 
 const app = express();
 
@@ -27,14 +30,16 @@ apiRouter.post('/register', async (req, res) => {
     res.status(400).send({ msg: 'Missing password' })
     return
   }
-
-  let user = await DB.getUser(req.body.username)
+  const userDAO = new UserMongoDB();
+  let user = await userDAO.getUser(req.body.username);
+  // let user = await DB.getUser(req.body.username)
   if (user) {
     res.status(409).send({ msg: 'Existing user' });
     return
   }
 
-  user = await DB.createUser(req.body.username, req.body.password)
+  user = await userDAO.createUser(req.body.username, req.body.password);
+  // user = await DB.createUser(req.body.username, req.body.password)
   setAuthCookie(res, user.token);
 
   res.status(201).send({ username: user.username });
@@ -50,7 +55,9 @@ apiRouter.post('/login', async (req, res) => {
     return
   }
 
-  const user = await DB.getUser(req.body.username)
+  const userDAO = new UserMongoDB();
+  const user = await userDAO.getUser(req.body.username);
+  // const user = await DB.getUser(req.body.username)
 
   if (user && await bcrypt.compare(req.body.password, user.password)) {
     setAuthCookie(res, user.token);
@@ -65,9 +72,11 @@ apiRouter.delete('/logout', (_req, res) => {
   res.status(204).end();
 })
 
-async function getUserFromRequest(req) {
+async function getUserFromRequest(req: any) {
   const authToken = req.cookies[authCookieName];
-  const user = await DB.getUserByToken(authToken);
+  const userDAO = new UserMongoDB();
+  const user = await userDAO.getUserByToken(authToken);
+  // const user = await DB.getUserByToken(authToken);
   return user
 }
 
@@ -95,7 +104,9 @@ secureApiRouter.use(async (req, res, next) => {
 secureApiRouter.post('/room', async (req, res) => {
   const user = await getUserFromRequest(req)
 
-  const newRoom = await DB.createRoom(user.username)
+  const roomDAO = new RoomMongoDB();
+  const newRoom = await roomDAO.createRoom(user.username);
+  // const newRoom = await DB.createRoom(user.username)
 
   res.status(201).send({ id: newRoom.id, code: newRoom.code })
 })
@@ -103,14 +114,16 @@ secureApiRouter.post('/room', async (req, res) => {
 secureApiRouter.get('/room/:id', async (req, res) => {
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const room = await DB.getRoomById(roomId)
+  const roomDAO = new RoomMongoDB();
+  const room = await roomDAO.getRoomById(roomId);
+  // const room = await DB.getRoomById(roomId)
 
   if (!room) {
     res.status(404).send({ msg: `Room ${roomId} does not exist` })
     return
   }
 
-  if (!room.state === 'open') {
+  if (room.state !== 'open') {
     res.status(409).send({ msg: 'Room is not open' })
     return
   }
@@ -121,19 +134,22 @@ secureApiRouter.get('/room/:id', async (req, res) => {
 secureApiRouter.post('/room/:code/join', async (req, res) => {
   const user = await getUserFromRequest(req)
   const roomCode = req.params.code
-  const room = await DB.getRoomByCode(roomCode)
+  const roomDAO = new RoomMongoDB();
+  const room = await roomDAO.getRoomByCode(roomCode);
+  // const room = await DB.getRoomByCode(roomCode)
 
   if (!room) {
     res.status(404).send({ msg: `Room ${roomCode} does not exist` })
     return
   }
 
-  if (!room.state === 'open') {
+  if (room.state !== 'open') {
     res.status(409).send({ msg: 'Room is not open' })
     return
   }
 
-  const success = await DB.addParticipantToRoom(roomCode, user.username)
+  const success = await roomDAO.addParticipantToRoom(roomCode, user.username);
+  // const success = await DB.addParticipantToRoom(roomCode, user.username)
 
   if (success) {
     res.status(200).send({ id: room._id })
@@ -150,14 +166,16 @@ secureApiRouter.post('/room/:id/options', async (req, res) => {
 
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const room = await DB.getRoomById(roomId)
+  const roomDAO = new RoomMongoDB();
+  const room = await roomDAO.getRoomById(roomId);
+  // const room = await DB.getRoomById(roomId)
 
   if (!room) {
     res.status(404).send({ msg: `Room ${roomId} does not exist` })
     return
   }
 
-  if (!room.state === 'open') {
+  if (room.state !== 'open') {
     res.status(409).send({ msg: 'Room is not open' })
     return
   }
@@ -168,12 +186,12 @@ secureApiRouter.post('/room/:id/options', async (req, res) => {
   }
 
   const newOption = req.body.option
-  if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
+  if (room.options.map((opt: any) => opt.toLowerCase()).includes(newOption.toLowerCase())) {
     res.status(409).send({ msg: 'Option already exists' })
     return
   }
 
-  if (await DB.addOptionToRoom(roomId, newOption)) {
+  if (await roomDAO.addOptionToRoom(roomId, newOption)) {
     res.status(201).send({ options: [...room.options, newOption] })
     return
   }
@@ -188,14 +206,16 @@ secureApiRouter.post('/room/:id/lockin', async (req, res) => {
 
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const room = await DB.getRoomById(roomId)
+  const roomDAO = new RoomMongoDB();
+  const room = await roomDAO.getRoomById(roomId);
+  // const room = await DB.getRoomById(roomId)
 
   if (!room) {
     res.status(404).send({ msg: `Room ${roomId} does not exist` })
     return
   }
 
-  if (!room.state === 'open') {
+  if (room.state !== 'open') {
     res.status(409).send({ msg: 'Room is not open' })
     return
   }
@@ -204,8 +224,8 @@ secureApiRouter.post('/room/:id/lockin', async (req, res) => {
     res.status(403).send({ msg: 'User is not allowed to participate in room' })
     return
   }
-
-  await DB.submitUserVotes(roomId, user.username, req.body.votes)
+  await roomDAO.submitUserVotes(roomId, user.username, req.body.votes)
+  // await DB.submitUserVotes(roomId, user.username, req.body.votes)
 
   const isOwner = room.owner === user.username
 
@@ -215,7 +235,9 @@ secureApiRouter.post('/room/:id/lockin', async (req, res) => {
 secureApiRouter.post('/room/:id/close', async (req, res) => {
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const room = await DB.getRoomById(roomId)
+  const roomDAO = new RoomMongoDB();
+  const room = await roomDAO.getRoomById(roomId);
+  // const room = await DB.getRoomById(roomId)
 
   if (!room) {
     res.status(404).send({ msg: `Room ${roomId} does not exist` })
@@ -228,22 +250,27 @@ secureApiRouter.post('/room/:id/close', async (req, res) => {
     return
   }
 
-  if (!room.state === 'open') {
+  if (room.state !== 'open') {
     res.status(409).send({ msg: 'Room is not open' })
     return
   }
 
-  await DB.closeRoom(roomId)
+  await roomDAO.closeRoom(roomId);
+  // await DB.closeRoom(roomId)
 
   const sortedOptions = calculateVoteResult(room.votes)
-  const result = await DB.createResult(user.username, sortedOptions)
+  const historyDAO = new HistoryMongoDB();
+  const result = await historyDAO.createResult(user.username, sortedOptions);
+  // const result = await DB.createResult(user.username, sortedOptions)
 
   res.status(200).send({ resultsId: result._id })
 })
 
 secureApiRouter.get('/results/:id', async (req, res) => {
   const resultsId = req.params.id
-  const result = await DB.getResult(resultsId)
+  const historyDAO = new HistoryMongoDB();
+  const result = await historyDAO.getResult(resultsId);
+  // const result = await DB.getResult(resultsId)
 
   if (!result) {
     res.status(404).send({ msg: `Result does not exist` })
@@ -255,13 +282,14 @@ secureApiRouter.get('/results/:id', async (req, res) => {
 
 secureApiRouter.get('/history', async (req, res) => {
   const user = await getUserFromRequest(req)
-
-  const history = await DB.getHistory(user.username)
+  const historyDAO = new HistoryMongoDB();
+  const history = await historyDAO.getHistory(user.username);
+  // const history = await DB.getHistory(user.username)
 
   res.status(200).send({ history })
 })
 
-app.use(function(err, _req, res, _next) {
+app.use(function(err: any, _req: any, res: any, _next: any) {
   res.status(500).send({ type: err.name, message: err.message });
 });
 
@@ -269,7 +297,7 @@ app.use((_req, res) => {
   res.sendFile('index.html', { root: 'public' });
 });
 
-function setAuthCookie(res, authToken) {
+function setAuthCookie(res: any, authToken: any) {
   res.cookie(authCookieName, authToken, {
     secure: true,
     httpOnly: true,
@@ -281,4 +309,5 @@ const httpService = app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
 
-peerProxy(httpService);
+const proxy = new PeerProxy();
+proxy.peerProxy(httpService);
