@@ -1,0 +1,341 @@
+openapi: 3.0.0
+info:
+  title: QuikVote API
+  version: 1.0.0
+  description: API for managing rooms and voting system
+
+servers:
+  - url: http://localhost:4000
+    description: Development server
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        msg:
+          type: string
+
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        owner:
+          type: string
+        state:
+          type: string
+          enum: [open, closed]
+        participants:
+          type: array
+          items:
+            type: string
+        options:
+          type: array
+          items:
+            type: string
+        isOwner:
+          type: boolean
+
+paths:
+  /api/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Missing username or password
+        '409':
+          description: Username already exists
+
+  /api/login:
+    post:
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid credentials
+
+  /api/logout:
+    delete:
+      summary: Logout user
+      responses:
+        '204':
+          description: Logout successful
+
+  /api/me:
+    get:
+      summary: Get current user information
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '204':
+          description: No user logged in
+
+  /api/room:
+    post:
+      summary: Create a new room
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Room created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  code:
+                    type: string
+        '401':
+          description: Unauthorized
+
+  /api/room/{id}:
+    get:
+      summary: Get room by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Room details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '404':
+          description: Room not found
+        '409':
+          description: Room is not open
+
+  /api/room/{code}/join:
+    post:
+      summary: Join a room using code
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully joined room
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        '404':
+          description: Room not found
+        '409':
+          description: Room is not open
+
+  /api/room/{id}/options:
+    post:
+      summary: Add option to room
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - option
+              properties:
+                option:
+                  type: string
+      responses:
+        '201':
+          description: Option added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  options:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Missing option
+        '403':
+          description: User not allowed to add options
+        '409':
+          description: Option already exists
+
+  /api/room/{id}/lockin:
+    post:
+      summary: Submit votes for room
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - votes
+              properties:
+                votes:
+                  type: object
+      responses:
+        '200':
+          description: Votes submitted successfully
+        '400':
+          description: Missing votes
+        '403':
+          description: User not allowed to vote
+        '409':
+          description: Room is not open
+
+  /api/room/{id}/close:
+    post:
+      summary: Close room and calculate results
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Room closed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resultsId:
+                    type: string
+        '403':
+          description: User is not room owner
+        '409':
+          description: Room is not open
+
+  /api/results/{id}:
+    get:
+      summary: Get voting results
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Results not found
+
+  /api/history:
+    get:
+      summary: Get user's voting history
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: History retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      type: object
