@@ -1,6 +1,6 @@
-import HistoryMongoDB from "./database/mongoDb/History";
-import RoomMongoDB from "./database/mongoDb/Room";
-import UserMongoDb from "./database/mongoDb/User";
+import HistoryMongoDB from "./database/mongoDb/HistoryMongoDB";
+import RoomMongoDB from "./database/mongoDb/RoomMongoDB";
+import UserMongoDb from "./database/mongoDb/UserMongoDB";
 const { WebSocketServer } = require('ws');
 import calculateVoteResult from "./calculateVoteResult";
 const uuid = require('uuid');

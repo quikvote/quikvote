@@ -3,9 +3,9 @@ import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import PeerProxy from './peerProxy';
 import calculateVoteResult from './calculateVoteResult';
-import UserMongoDB from './database/mongoDb/User';
-import RoomMongoDB from './database/mongoDb/Room';
-import HistoryMongoDB from './database/mongoDb/History';
+import UserMongoDB from './database/mongoDb/UserMongoDB';
+import RoomMongoDB from './database/mongoDb/RoomMongoDB';
+import HistoryMongoDB from './database/mongoDb/HistoryMongoDB';
 
 const app = express();
 
