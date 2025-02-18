@@ -16,7 +16,7 @@ class PeerProxy {
         const authToken = request.rawHeaders.find((h: any) => h.startsWith(authCookieName))?.split('=')[1]
         const userDAO = new UserMongoDb();
         const user = await userDAO.getUserByToken(authToken);
-        // const user = await DB.getUserByToken(authToken);
+
         if (user) {
             next(undefined, user);
         } else {
@@ -91,7 +91,7 @@ class PeerProxy {
     public async handleNewOption(event: any, connection: any, connections: any) {
         const roomDAO = new RoomMongoDB();
         const room = await roomDAO.getRoomById(event.room);
-        // const room = await DB.getRoomById(event.room)
+
         if (!room) {
             console.warn(`no room with id ${event.room}`)
             return
@@ -123,7 +123,6 @@ class PeerProxy {
         const roomId = event.room
         const roomDAO = new RoomMongoDB();
         const room = await roomDAO.getRoomById(roomId);
-        // const room = await DB.getRoomById(roomId)
 
         if (!room) {
             console.warn(`no room with id ${event.room}`)
@@ -141,19 +140,17 @@ class PeerProxy {
         }
 
         await roomDAO.submitUserVotes(roomId, user, event.votes);
-        // await DB.submitUserVotes(roomId, user, event.votes)
-
         const new_room = await roomDAO.getRoomById(roomId);
-        // const new_room = await DB.getRoomById(roomId)
+
         if (new_room!.votes.length == new_room!.participants.length) {
             // all users have voted
             await roomDAO.closeRoom(roomId);
-            // await DB.closeRoom(roomId)
+
 
             const sortedOptions = calculateVoteResult(new_room!.votes)
             const historyDAO = new HistoryMongoDB();
             const result = await historyDAO.createResult(user, sortedOptions);
-            // const result = await DB.createResult(user, sortedOptions)
+
             connections.filter((c: any) => new_room!.participants.includes(c.user)).forEach((c: any) => {
                 c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
             });
@@ -165,7 +162,6 @@ class PeerProxy {
         const roomId = event.room
         const roomDAO = new RoomMongoDB();
         const room = await roomDAO.getRoomById(roomId);
-        // const room = await DB.getRoomById(roomId)
 
         if (!room) {
             console.warn(`no room with id ${event.room}`)
@@ -183,12 +179,11 @@ class PeerProxy {
         }
 
         await roomDAO.closeRoom(roomId);
-        // await DB.closeRoom(roomId)
 
         const sortedOptions = calculateVoteResult(room.votes)
         const historyDAO = new HistoryMongoDB();
         const result = await historyDAO.createResult(user, sortedOptions);
-        // const result = await DB.createResult(user, sortedOptions)
+
         connections.filter((c: any) => room.participants.includes(c.user)).forEach((c: any) => {
             c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
         });
@@ -196,4 +191,3 @@ class PeerProxy {
 }
 
 export default PeerProxy;
-// module.exports = { peerProxy };
