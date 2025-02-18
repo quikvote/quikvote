@@ -1,7 +1,8 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import dbUrl from '../../dbconfig';
+import { HistoryDAO } from '../HistoryDAO';
 
-class HistoryMongoDB {
+class HistoryMongoDB implements HistoryDAO {
     private client;
     private db;
     private historyCollection;

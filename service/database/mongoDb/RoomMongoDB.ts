@@ -1,7 +1,8 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import dbUrl from '../../dbconfig';
+import { RoomDAO } from '../RoomDAO';
 
-class RoomMongoDB {
+class RoomMongoDB implements RoomDAO {
     private client;
     private db;
     private roomsCollection;

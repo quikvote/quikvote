@@ -2,8 +2,9 @@ import { MongoClient } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import dbUrl from '../../dbconfig';
+import { UserDAO } from '../UserDAO';
 
-class UserMongoDb {
+class UserMongoDb implements UserDAO {
     private client;
     private db;
     private userCollection;
