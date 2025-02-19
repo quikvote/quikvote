@@ -9,6 +9,11 @@ import HistoryMongoDB from './database/mongoDb/HistoryMongoDB';
 
 const app = express();
 
+// DB Connections
+const userDAO = new UserMongoDB();
+const roomDAO = new RoomMongoDB();
+const historyDAO = new HistoryMongoDB();
+
 const authCookieName = 'token';
 
 const port = process.argv.length > 2 ? process.argv[2] : 4000;
@@ -29,7 +34,7 @@ apiRouter.post('/register', async (req, res) => {
     res.status(400).send({ msg: 'Missing password' })
     return
   }
-  const userDAO = new UserMongoDB();
+  
   let user = await userDAO.getUser(req.body.username);
   if (user) {
     res.status(409).send({ msg: 'Existing user' });
@@ -52,7 +57,6 @@ apiRouter.post('/login', async (req, res) => {
     return
   }
 
-  const userDAO = new UserMongoDB();
   const user = await userDAO.getUser(req.body.username);
 
   if (user && await bcrypt.compare(req.body.password, user.password)) {
@@ -70,7 +74,6 @@ apiRouter.delete('/logout', (_req, res) => {
 
 async function getUserFromRequest(req: any) {
   const authToken = req.cookies[authCookieName];
-  const userDAO = new UserMongoDB();
   const user = await userDAO.getUserByToken(authToken);
 
   return user
@@ -100,8 +103,6 @@ secureApiRouter.use(async (req, res, next) => {
 
 secureApiRouter.post('/room', async (req, res) => {
   const user = await getUserFromRequest(req)
-
-  const roomDAO = new RoomMongoDB();
   const newRoom = await roomDAO.createRoom(user.username);
 
   res.status(201).send({ id: newRoom.id, code: newRoom.code })
@@ -110,7 +111,6 @@ secureApiRouter.post('/room', async (req, res) => {
 secureApiRouter.get('/room/:id', async (req, res) => {
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const roomDAO = new RoomMongoDB();
   const room = await roomDAO.getRoomById(roomId);
 
   if (!room) {
@@ -129,7 +129,6 @@ secureApiRouter.get('/room/:id', async (req, res) => {
 secureApiRouter.post('/room/:code/join', async (req, res) => {
   const user = await getUserFromRequest(req)
   const roomCode = req.params.code
-  const roomDAO = new RoomMongoDB();
   const room = await roomDAO.getRoomByCode(roomCode);
 
   if (!room) {
@@ -159,7 +158,6 @@ secureApiRouter.post('/room/:id/options', async (req, res) => {
 
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const roomDAO = new RoomMongoDB();
   const room = await roomDAO.getRoomById(roomId);
 
   if (!room) {
@@ -198,7 +196,6 @@ secureApiRouter.post('/room/:id/lockin', async (req, res) => {
 
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const roomDAO = new RoomMongoDB();
   const room = await roomDAO.getRoomById(roomId);
 
   if (!room) {
@@ -225,7 +222,6 @@ secureApiRouter.post('/room/:id/lockin', async (req, res) => {
 secureApiRouter.post('/room/:id/close', async (req, res) => {
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
-  const roomDAO = new RoomMongoDB();
   const room = await roomDAO.getRoomById(roomId);
 
   if (!room) {
@@ -247,7 +243,6 @@ secureApiRouter.post('/room/:id/close', async (req, res) => {
   await roomDAO.closeRoom(roomId);
 
   const sortedOptions = calculateVoteResult(room.votes)
-  const historyDAO = new HistoryMongoDB();
   const result = await historyDAO.createResult(user.username, sortedOptions);
 
   res.status(200).send({ resultsId: result._id })
@@ -255,7 +250,6 @@ secureApiRouter.post('/room/:id/close', async (req, res) => {
 
 secureApiRouter.get('/results/:id', async (req, res) => {
   const resultsId = req.params.id
-  const historyDAO = new HistoryMongoDB();
   const result = await historyDAO.getResult(resultsId);
 
   if (!result) {
@@ -268,7 +262,6 @@ secureApiRouter.get('/results/:id', async (req, res) => {
 
 secureApiRouter.get('/history', async (req, res) => {
   const user = await getUserFromRequest(req)
-  const historyDAO = new HistoryMongoDB();
   const history = await historyDAO.getHistory(user.username);
 
   res.status(200).send({ history })
