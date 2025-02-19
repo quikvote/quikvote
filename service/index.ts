@@ -6,6 +6,7 @@ import calculateVoteResult from './calculateVoteResult';
 import UserMongoDB from './database/mongoDb/UserMongoDB';
 import RoomMongoDB from './database/mongoDb/RoomMongoDB';
 import HistoryMongoDB from './database/mongoDb/HistoryMongoDB';
+import { closeDB } from './database/mongoDb/MongoDB';
 
 const app = express();
 
@@ -286,6 +287,17 @@ function setAuthCookie(res: any, authToken: any) {
 const httpService = app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
+
+// Close the DB connection on server shutdown.
+const gracefulShutdown = async () => {
+  console.log('Shutting down gracefully...');
+  await closeDB();
+  process.exit(0);
+};
+// Handle termination signals
+process.on('SIGINT', gracefulShutdown); // Ctrl+C in terminal
+process.on('SIGTERM', gracefulShutdown); // Cloud provider shutdown
+
 
 const proxy = new PeerProxy();
 proxy.peerProxy(httpService);

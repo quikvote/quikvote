@@ -1,16 +1,13 @@
-import { MongoClient, ObjectId } from 'mongodb';
-import dbUrl from '../../dbconfig';
+import { ObjectId } from 'mongodb';
 import { RoomDAO } from '../RoomDAO';
+import { getDB } from './MongoDB';
 
 class RoomMongoDB implements RoomDAO {
-    private client;
-    private db;
-    private roomsCollection;
+    private roomsCollection: any;
 
-    public constructor() {
-        this.client = new MongoClient(dbUrl);
-        this.db = this.client.db('quikvote');
-        this.roomsCollection = this.db.collection('room');
+    public async init() {
+      const db = await getDB()
+      this.roomsCollection = db.collection('room');
     }
 
     // TODO: move this out of the DAO
@@ -30,6 +27,7 @@ class RoomMongoDB implements RoomDAO {
     }
 
     public async createRoom(creatorUsername: string) {
+        if (!this.roomsCollection) await this.init();
         const newRoom = {
           code: this.generateRandomRoomCode(),
           owner: creatorUsername,
@@ -47,14 +45,17 @@ class RoomMongoDB implements RoomDAO {
     }
 
     public async getRoomByCode(roomCode: string) {
+        if (!this.roomsCollection) await this.init();
         return await this.roomsCollection.findOne({ code: roomCode })
     }
 
     public async getRoomById(roomId: string) {
+        if (!this.roomsCollection) await this.init();
         return await this.roomsCollection.findOne(new ObjectId(roomId))
     }
 
     public async addParticipantToRoom(roomCode: string, username: string) {
+        if (!this.roomsCollection) await this.init();
         const result = await this.roomsCollection.updateOne(
           { code: roomCode, state: 'open' },
           {
@@ -67,6 +68,7 @@ class RoomMongoDB implements RoomDAO {
     }
 
     public async addOptionToRoom(roomId: string, option: string) {
+        if (!this.roomsCollection) await this.init();
         const result = await this.roomsCollection.updateOne(
           { _id: new ObjectId(roomId), state: 'open' },
           {
@@ -80,6 +82,7 @@ class RoomMongoDB implements RoomDAO {
 
     // TODO: Figure out what type votes is (probably need a new class).
     public async submitUserVotes(roomId: string, username: string, votes: any) {
+        if (!this.roomsCollection) await this.init();
         const result = await this.roomsCollection.updateOne(
           { _id: new ObjectId(roomId), "votes.username": { $ne: username } },
           {
@@ -95,6 +98,7 @@ class RoomMongoDB implements RoomDAO {
     }
 
     public async closeRoom(roomId: string) {
+        if (!this.roomsCollection) await this.init();
         const result = await this.roomsCollection.updateOne(
           { _id: new ObjectId(roomId) },
           {
@@ -107,6 +111,7 @@ class RoomMongoDB implements RoomDAO {
     }
 
     public async deleteRoom(roomId: string) {
+        if (!this.roomsCollection) await this.init();
         const result = await this.roomsCollection.deleteOne(new ObjectId(roomId))
         return result.acknowledged && result.deletedCount == 1
     }

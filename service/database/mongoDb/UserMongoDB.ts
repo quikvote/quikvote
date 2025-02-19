@@ -1,29 +1,28 @@
-import { MongoClient } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
-import dbUrl from '../../dbconfig';
 import { UserDAO } from '../UserDAO';
+import { getDB } from './MongoDB';
 
 class UserMongoDb implements UserDAO {
-    private client;
-    private db;
-    private userCollection;
+    private userCollection: any;
 
-    public constructor() {
-        this.client = new MongoClient(dbUrl);
-        this.db = this.client.db('quikvote');
-        this.userCollection = this.db.collection('user');
+    public async init() {
+        const db = await getDB()
+        this.userCollection = db.collection('user');
     }
 
-    public getUser(username: string): any {
+    public async getUser(username: string): Promise<any> {
+        if (!this.userCollection) await this.init();
         return this.userCollection.findOne({ username });
     }
     
-    public getUserByToken(token: string): any {
+    public async getUserByToken(token: string): Promise<any> {
+        if (!this.userCollection) await this.init();
         return this.userCollection.findOne({ token });
     }
     
     public async createUser(username: string, password: string): Promise<any> {
+        if (!this.userCollection) await this.init();
         const passwordHash = await bcrypt.hash(password, 10);
     
         const user = {

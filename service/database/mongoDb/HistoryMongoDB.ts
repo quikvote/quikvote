@@ -1,19 +1,18 @@
-import { MongoClient, ObjectId } from 'mongodb';
-import dbUrl from '../../dbconfig';
+import { ObjectId } from 'mongodb';
 import { HistoryDAO } from '../HistoryDAO';
+import { getDB } from './MongoDB';
 
 class HistoryMongoDB implements HistoryDAO {
-    private client;
-    private db;
-    private historyCollection;
+    private historyCollection: any;
 
-    public constructor() {
-        this.client = new MongoClient(dbUrl);
-        this.db = this.client.db('quikvote');
-        this.historyCollection = this.db.collection('history');
+    public async init() {
+      const db = await getDB()
+      this.historyCollection = db.collection('history');
     }
 
     public async createResult(username: string, sortedOptions: any) {
+        if (!this.historyCollection) await this.init();
+        
         const result = {
           owner: username,
           sortedOptions,
@@ -28,10 +27,14 @@ class HistoryMongoDB implements HistoryDAO {
     }
 
     public async getResult(resultId: any) {
+        if (!this.historyCollection) await this.init();
+
         return await this.historyCollection.findOne(new ObjectId(resultId))
     }
 
     public async getHistory(username: string) {
+        if (!this.historyCollection) await this.init();
+
         const cursor = this.historyCollection.find(
           { owner: username },
           {
