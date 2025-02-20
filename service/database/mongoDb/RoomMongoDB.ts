@@ -97,6 +97,20 @@ class RoomMongoDB implements RoomDAO {
         return result.acknowledged && result.matchedCount === 1
     }
 
+    public async removeUserVotes(roomId: string, username: string) {
+      if (!this.roomsCollection) await this.init();
+      const result = await this.roomsCollection.updateOne(
+        { _id: new ObjectId(roomId) },
+        {
+          $pull: {
+            votes: {
+              username
+            }
+          }
+        }
+      )
+    }
+
     public async closeRoom(roomId: string) {
         if (!this.roomsCollection) await this.init();
         const result = await this.roomsCollection.updateOne(

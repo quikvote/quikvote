@@ -5,6 +5,7 @@ export interface RoomDAO {
     addParticipantToRoom: (roomCode: string, username: string) => any,
     addOptionToRoom: (roomId: string, option: string) => any,
     submitUserVotes: (roomId: string, username: string, votes: any) => any,
+    removeUserVotes: (roomId: string, username: string) => void,
     closeRoom: (roomId: string) => any,
     deleteRoom: (roomId: string) => any
 }

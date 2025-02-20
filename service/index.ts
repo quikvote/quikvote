@@ -221,6 +221,31 @@ secureApiRouter.post('/room/:id/lockin', async (req, res) => {
   res.status(200).send({ resultsId: '', isOwner })
 })
 
+secureApiRouter.delete('/room/:id/unlock', async (req, res) => {
+  const user = await getUserFromRequest(req);
+  const roomId = req.params.id;
+  const room = await roomDAO.getRoomById(roomId);
+
+  if (!room) {
+    res.status(404).send({ msg: `Room ${roomId} does not exist` })
+    return
+  }
+
+  if (room.state !== 'open') {
+    res.status(409).send({ msg: 'Room is not open' })
+    return
+  }
+
+  if (!room.participants.includes(user.username)) {
+    res.status(403).send({ msg: 'User is not allowed to participate in room' })
+    return
+  }
+
+  await roomDAO.removeUserVotes(roomId, user.username);
+
+  res.status(200).send();
+})
+
 secureApiRouter.post('/room/:id/close', async (req, res) => {
   const user = await getUserFromRequest(req)
   const roomId = req.params.id
