@@ -7,6 +7,7 @@ import UserMongoDB from './database/mongoDb/UserMongoDB';
 import RoomMongoDB from './database/mongoDb/RoomMongoDB';
 import HistoryMongoDB from './database/mongoDb/HistoryMongoDB';
 import { closeDB } from './database/mongoDb/MongoDB';
+import MongoDBDaoFactory from './factory/MongoDBDaoFactory';
 
 const app = express();
 
@@ -299,5 +300,5 @@ process.on('SIGINT', gracefulShutdown); // Ctrl+C in terminal
 process.on('SIGTERM', gracefulShutdown); // Cloud provider shutdown
 
 
-const proxy = new PeerProxy();
+const proxy = new PeerProxy(new MongoDBDaoFactory());
 proxy.peerProxy(httpService);

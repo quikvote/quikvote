@@ -1,21 +1,31 @@
-import HistoryMongoDB from "./database/mongoDb/HistoryMongoDB";
-import RoomMongoDB from "./database/mongoDb/RoomMongoDB";
-import UserMongoDb from "./database/mongoDb/UserMongoDB";
 const { WebSocketServer } = require('ws');
 import calculateVoteResult from "./calculateVoteResult";
+import { UserDAO } from "./database/UserDAO";
+import { RoomDAO } from "./database/RoomDAO";
+import { HistoryDAO } from "./database/HistoryDAO";
+import { DaoFactory } from "./factory/DaoFactory";
 const uuid = require('uuid');
 
 const authCookieName = 'token';
 
 class PeerProxy {
+    private userDAO: UserDAO;
+    private roomDAO: RoomDAO;
+    private historyDAO: HistoryDAO;
+
+    public constructor(daoFactory: DaoFactory) {
+        this.userDAO = daoFactory.userDAO();
+        this.roomDAO = daoFactory.roomDAO();
+        this.historyDAO = daoFactory.historyDAO();
+    }
+
     public onSocketError(err: any) {
         console.error(err)
     }
 
     public async authenticate(request: any, next: any) {
         const authToken = request.rawHeaders.find((h: any) => h.startsWith(authCookieName))?.split('=')[1]
-        const userDAO = new UserMongoDb();
-        const user = await userDAO.getUserByToken(authToken);
+        const user = await this.userDAO.getUserByToken(authToken);
 
         if (user) {
             next(undefined, user);
@@ -89,8 +99,7 @@ class PeerProxy {
     }
 
     public async handleNewOption(event: any, connection: any, connections: any) {
-        const roomDAO = new RoomMongoDB();
-        const room = await roomDAO.getRoomById(event.room);
+        const room = await this.roomDAO.getRoomById(event.room);
 
         if (!room) {
             console.warn(`no room with id ${event.room}`)
@@ -111,7 +120,7 @@ class PeerProxy {
             return
         }
 
-        if (await roomDAO.addOptionToRoom(event.room, newOption)) {
+        if (await this.roomDAO.addOptionToRoom(event.room, newOption)) {
             connections.filter((c: any) => room.participants.includes(c.user)).forEach((c: any) => {
                 c.ws.send(JSON.stringify({ type: 'options', options: [...room.options, newOption] }));
             });
@@ -121,8 +130,7 @@ class PeerProxy {
     public async handleLockIn(event: any, connection: any, connections: any) {
         const user = connection.user
         const roomId = event.room
-        const roomDAO = new RoomMongoDB();
-        const room = await roomDAO.getRoomById(roomId);
+        const room = await this.roomDAO.getRoomById(roomId);
 
         if (!room) {
             console.warn(`no room with id ${event.room}`)
@@ -139,17 +147,16 @@ class PeerProxy {
             return
         }
 
-        await roomDAO.submitUserVotes(roomId, user, event.votes);
-        const new_room = await roomDAO.getRoomById(roomId);
+        await this.roomDAO.submitUserVotes(roomId, user, event.votes);
+        const new_room = await this.roomDAO.getRoomById(roomId);
 
         if (new_room!.votes.length == new_room!.participants.length) {
             // all users have voted
-            await roomDAO.closeRoom(roomId);
+            await this.roomDAO.closeRoom(roomId);
 
 
             const sortedOptions = calculateVoteResult(new_room!.votes)
-            const historyDAO = new HistoryMongoDB();
-            const result = await historyDAO.createResult(user, sortedOptions);
+            const result = await this.historyDAO.createResult(user, sortedOptions);
 
             connections.filter((c: any) => new_room!.participants.includes(c.user)).forEach((c: any) => {
                 c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
@@ -159,9 +166,8 @@ class PeerProxy {
 
     public async handleCloseRoom(event: any, connection: any, connections: any) {
         const user = connection.user
-        const roomId = event.room
-        const roomDAO = new RoomMongoDB();
-        const room = await roomDAO.getRoomById(roomId);
+        const roomId = event.room;
+        const room = await this.roomDAO.getRoomById(roomId);
 
         if (!room) {
             console.warn(`no room with id ${event.room}`)
@@ -178,11 +184,10 @@ class PeerProxy {
             return
         }
 
-        await roomDAO.closeRoom(roomId);
+        await this.roomDAO.closeRoom(roomId);
 
         const sortedOptions = calculateVoteResult(room.votes)
-        const historyDAO = new HistoryMongoDB();
-        const result = await historyDAO.createResult(user, sortedOptions);
+        const result = await this.historyDAO.createResult(user, sortedOptions);
 
         connections.filter((c: any) => room.participants.includes(c.user)).forEach((c: any) => {
             c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
