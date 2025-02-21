@@ -95,7 +95,6 @@ class PeerProxy {
             connections.push(connection);
 
             ws.on('message', async (data: RawData) => {
-                // TODO: define ws event data types
                 const dataString = data.toString()
                 const dataParsed = JSON.parse(dataString) as WSEvent
                 console.log(`Recieved ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`)
