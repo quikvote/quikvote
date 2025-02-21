@@ -185,15 +185,19 @@ class PeerProxy {
         await this.roomDAO.submitUserVotes(roomId, user, event.votes);
         const new_room = await this.roomDAO.getRoomById(roomId);
 
-        if (new_room!.votes.length == new_room!.participants.length) {
+        if (!new_room) {
+            console.warn(`something went wrong. there was a room and now there isn't. roomId: ${roomId}`)
+            return
+        }
+
+        if (new_room.votes.length == new_room.participants.length) {
             // all users have voted
             await this.roomDAO.closeRoom(roomId);
 
+            const sortedOptions = calculateVoteResult(new_room.votes)
+            const result = await this.historyDAO.createResult(new_room.owner, sortedOptions);
 
-            const sortedOptions = calculateVoteResult(new_room!.votes)
-            const result = await this.historyDAO.createResult(user, sortedOptions);
-
-            connections.filter(c => new_room!.participants.includes(c.user)).forEach(c => {
+            connections.filter(c => new_room.participants.includes(c.user)).forEach(c => {
                 c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
             });
         }
