@@ -1,12 +1,22 @@
-import { WebSocketServer } from 'ws';
+import { RawData, WebSocket, WebSocketServer } from 'ws';
 import calculateVoteResult from "./calculateVoteResult";
 import { UserDAO } from "./database/UserDAO";
 import { RoomDAO } from "./database/RoomDAO";
 import { HistoryDAO } from "./database/HistoryDAO";
 import { DaoFactory } from "./factory/DaoFactory";
 import { v4 as uuidv4 } from 'uuid';
+import { IncomingMessage, Server } from 'http';
+import internal from 'stream';
+import { User } from './model';
 
 const authCookieName = 'token';
+
+interface Connection {
+    id: string
+    alive: boolean
+    ws: WebSocket
+    user: string
+}
 
 class PeerProxy {
     private userDAO: UserDAO;
@@ -23,8 +33,13 @@ class PeerProxy {
         console.error(err)
     }
 
-    public async authenticate(request: any, next: any) {
+    public async authenticate(request: IncomingMessage, next: (err: string | undefined, arg1: User | undefined) => void) {
         const authToken = request.rawHeaders.find((h: any) => h.startsWith(authCookieName))?.split('=')[1]
+        if (!authToken) {
+            next('Not Authorized', undefined)
+            return
+        }
+
         const user = await this.userDAO.getUserByToken(authToken);
 
         if (user) {
@@ -34,13 +49,13 @@ class PeerProxy {
         }
     }
 
-    public peerProxy(httpServer: any) {
+    public peerProxy(httpServer: Server) {
         const wss = new WebSocketServer({ noServer: true });
 
-        httpServer.on('upgrade', (request: any, socket: any, head: any) => {
+        httpServer.on('upgrade', (request: IncomingMessage, socket: internal.Duplex, head: Buffer) => {
             socket.on('error', this.onSocketError)
 
-            this.authenticate(request, (err: any, user: any) => {
+            this.authenticate(request, (err: string | undefined, user: User | undefined) => {
                 if (err || !user) {
                     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
                     socket.destroy();
@@ -49,20 +64,21 @@ class PeerProxy {
 
                 socket.removeListener('error', this.onSocketError);
 
-                wss.handleUpgrade(request, socket, head, function done(ws: any) {
+                wss.handleUpgrade(request, socket, head, function done(ws: WebSocket) {
                     wss.emit('connection', ws, request, user);
                 });
             })
         });
 
-        let connections: any = [];
+        let connections: Connection[] = [];
 
-        wss.on('connection', (ws: any, _request: any, user: any) => {
-            const connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
+        wss.on('connection', (ws: WebSocket, _request: IncomingMessage, user: User) => {
+            const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
             connections.push(connection);
 
-            ws.on('message', async (data: any) => {
-                const dataParsed = JSON.parse(data)
+            ws.on('message', async (data: RawData) => {
+                // TODO: define ws event data types
+                const dataParsed = JSON.parse(data.toString())
                 console.log(`Recieved ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`)
                 if (dataParsed.type == 'new_option') {
                     this.handleNewOption(dataParsed, connection, connections)
@@ -74,7 +90,7 @@ class PeerProxy {
             });
 
             ws.on('close', () => {
-                const pos = connections.findIndex((o: any) => o.id === connection.id);
+                const pos = connections.findIndex(c => c.id === connection.id);
 
                 if (pos >= 0) {
                     connections.splice(pos, 1);
@@ -87,7 +103,7 @@ class PeerProxy {
         });
 
         setInterval(() => {
-            connections.forEach((c: any) => {
+            connections.forEach(c => {
                 if (!c.alive) {
                     c.ws.terminate();
                 } else {
@@ -98,7 +114,7 @@ class PeerProxy {
         }, 10000);
     }
 
-    public async handleNewOption(event: any, connection: any, connections: any) {
+    public async handleNewOption(event: any, connection: Connection, connections: Connection[]) {
         const room = await this.roomDAO.getRoomById(event.room);
 
         if (!room) {
@@ -121,13 +137,13 @@ class PeerProxy {
         }
 
         if (await this.roomDAO.addOptionToRoom(event.room, newOption)) {
-            connections.filter((c: any) => room.participants.includes(c.user)).forEach((c: any) => {
+            connections.filter(c => room.participants.includes(c.user)).forEach(c => {
                 c.ws.send(JSON.stringify({ type: 'options', options: [...room.options, newOption] }));
             });
         }
     }
 
-    public async handleLockIn(event: any, connection: any, connections: any) {
+    public async handleLockIn(event: any, connection: Connection, connections: Connection[]) {
         const user = connection.user
         const roomId = event.room
         const room = await this.roomDAO.getRoomById(roomId);
@@ -158,13 +174,13 @@ class PeerProxy {
             const sortedOptions = calculateVoteResult(new_room!.votes)
             const result = await this.historyDAO.createResult(user, sortedOptions);
 
-            connections.filter((c: any) => new_room!.participants.includes(c.user)).forEach((c: any) => {
+            connections.filter(c => new_room!.participants.includes(c.user)).forEach(c => {
                 c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
             });
         }
     }
 
-    public async handleCloseRoom(event: any, connection: any, connections: any) {
+    public async handleCloseRoom(event: any, connection: Connection, connections: Connection[]) {
         const user = connection.user
         const roomId = event.room;
         const room = await this.roomDAO.getRoomById(roomId);
@@ -189,7 +205,7 @@ class PeerProxy {
         const sortedOptions = calculateVoteResult(room.votes)
         const result = await this.historyDAO.createResult(user, sortedOptions);
 
-        connections.filter((c: any) => room.participants.includes(c.user)).forEach((c: any) => {
+        connections.filter(c => room.participants.includes(c.user)).forEach(c => {
             c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
         });
     }
