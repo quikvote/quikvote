@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import PeerProxy from './peerProxy';
@@ -29,7 +29,7 @@ async function main() {
     const apiRouter = express.Router();
     app.use('/api', apiRouter);
 
-    apiRouter.post('/register', async (req, res) => {
+    apiRouter.post('/register', async (req: Request, res: Response) => {
         if (!req.body.username) {
             res.status(400).send({ msg: 'Missing username' })
             return
@@ -51,7 +51,7 @@ async function main() {
         res.status(201).send({ username: user.username });
     });
 
-    apiRouter.post('/login', async (req, res) => {
+    apiRouter.post('/login', async (req: Request, res: Response) => {
         if (!req.body.username) {
             res.status(400).send({ msg: 'Missing username' })
             return
@@ -71,19 +71,19 @@ async function main() {
         }
     });
 
-    apiRouter.delete('/logout', (_req, res) => {
+    apiRouter.delete('/logout', (_req: Request, res: Response) => {
         res.clearCookie(authCookieName);
         res.status(204).end();
     })
 
-    async function getUserFromRequest(req: any) {
+    async function getUserFromRequest(req: Request) {
         const authToken = req.cookies[authCookieName];
         const user = await userDAO.getUserByToken(authToken);
 
         return user
     }
 
-    apiRouter.get('/me', async (req, res) => {
+    apiRouter.get('/me', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
 
         if (user) {
@@ -96,7 +96,7 @@ async function main() {
     const secureApiRouter = express.Router();
     apiRouter.use(secureApiRouter);
 
-    secureApiRouter.use(async (req, res, next) => {
+    secureApiRouter.use(async (req: Request, res: Response, next: NextFunction) => {
         const user = await getUserFromRequest(req);
         if (user) {
             next();
@@ -105,14 +105,14 @@ async function main() {
         }
     });
 
-    secureApiRouter.post('/room', async (req, res) => {
+    secureApiRouter.post('/room', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
         const newRoom = await roomDAO.createRoom(user!.username);
 
         res.status(201).send({ id: newRoom._id, code: newRoom.code })
     })
 
-    secureApiRouter.get('/room/:id', async (req, res) => {
+    secureApiRouter.get('/room/:id', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
         const roomId = req.params.id
         const room = await roomDAO.getRoomById(roomId);
@@ -130,7 +130,7 @@ async function main() {
         res.status(200).send({ ...room, isOwner: room.owner === user!.username })
     })
 
-    secureApiRouter.post('/room/:code/join', async (req, res) => {
+    secureApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
         const roomCode = req.params.code
         const room = await roomDAO.getRoomByCode(roomCode);
@@ -154,7 +154,7 @@ async function main() {
         }
     })
 
-    secureApiRouter.post('/room/:id/options', async (req, res) => {
+    secureApiRouter.post('/room/:id/options', async (req: Request, res: Response) => {
         if (!req.body.option) {
             res.status(400).send({ msg: 'Missing option' })
             return
@@ -192,7 +192,7 @@ async function main() {
         res.status(500).send({ msg: 'unknown server error' })
     })
 
-    secureApiRouter.post('/room/:id/lockin', async (req, res) => {
+    secureApiRouter.post('/room/:id/lockin', async (req: Request, res: Response) => {
         if (!req.body.votes) {
             res.status(400).send({ msg: 'Missing votes' })
             return
@@ -223,7 +223,7 @@ async function main() {
         res.status(200).send({ resultsId: '', isOwner })
     })
 
-    secureApiRouter.delete('/room/:id/unlock', async (req, res) => {
+    secureApiRouter.delete('/room/:id/unlock', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req);
         const roomId = req.params.id;
         const room = await roomDAO.getRoomById(roomId);
@@ -248,7 +248,7 @@ async function main() {
         res.status(200).send();
     })
 
-    secureApiRouter.post('/room/:id/close', async (req, res) => {
+    secureApiRouter.post('/room/:id/close', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
         const roomId = req.params.id
         const room = await roomDAO.getRoomById(roomId);
@@ -277,7 +277,7 @@ async function main() {
         res.status(200).send({ resultsId: result._id })
     })
 
-    secureApiRouter.get('/results/:id', async (req, res) => {
+    secureApiRouter.get('/results/:id', async (req: Request, res: Response) => {
         const resultsId = req.params.id
         const result = await historyDAO.getResult(resultsId);
 
@@ -289,22 +289,22 @@ async function main() {
         res.status(200).send({ results: result.sortedOptions })
     })
 
-    secureApiRouter.get('/history', async (req, res) => {
+    secureApiRouter.get('/history', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
         const history = await historyDAO.getHistory(user!.username);
 
         res.status(200).send({ history })
     })
 
-    app.use(function(err: any, _req: any, res: any, _next: any) {
+    app.use(function(err: Error, _req: Request, res: Response, _next: NextFunction) {
         res.status(500).send({ type: err.name, message: err.message });
     });
 
-    app.use((_req, res) => {
+    app.use((_req: Request, res: Response) => {
         res.sendFile('index.html', { root: 'public' });
     });
 
-    function setAuthCookie(res: any, authToken: any) {
+    function setAuthCookie(res: Response, authToken: string) {
         res.cookie(authCookieName, authToken, {
             secure: true,
             httpOnly: true,
