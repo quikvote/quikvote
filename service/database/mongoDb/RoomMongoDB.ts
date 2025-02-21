@@ -58,8 +58,7 @@ class RoomMongoDB implements RoomDAO {
         return result.acknowledged && result.matchedCount === 1
     }
 
-    // TODO: Figure out what type votes is (probably need a new class).
-    public async submitUserVotes(roomId: string, username: string, votes: any): Promise<boolean> {
+    public async submitUserVotes(roomId: string, username: string, votes: Record<string, number>): Promise<boolean> {
         const result = await this.roomsCollection.updateOne(
             { _id: new ObjectId(roomId), "votes.username": { $ne: username } },
             {

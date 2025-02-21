@@ -18,6 +18,24 @@ interface Connection {
     user: string
 }
 
+interface WSEvent {
+    type: 'new_option' | 'lock_in' | 'close_room'
+}
+
+interface NewOptionEvent extends WSEvent {
+    room: string
+    option: string
+}
+
+interface LockInEvent extends WSEvent {
+    room: string
+    votes: Record<string, number>
+}
+
+interface CloseRoomEvent extends WSEvent {
+    room: string
+}
+
 class PeerProxy {
     private userDAO: UserDAO;
     private roomDAO: RoomDAO;
@@ -34,7 +52,7 @@ class PeerProxy {
     }
 
     public async authenticate(request: IncomingMessage, next: (err: string | undefined, arg1: User | undefined) => void) {
-        const authToken = request.rawHeaders.find((h: any) => h.startsWith(authCookieName))?.split('=')[1]
+        const authToken = request.rawHeaders.find(h => h.startsWith(authCookieName))?.split('=')[1]
         if (!authToken) {
             next('Not Authorized', undefined)
             return
@@ -78,14 +96,15 @@ class PeerProxy {
 
             ws.on('message', async (data: RawData) => {
                 // TODO: define ws event data types
-                const dataParsed = JSON.parse(data.toString())
+                const dataString = data.toString()
+                const dataParsed = JSON.parse(dataString) as WSEvent
                 console.log(`Recieved ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`)
                 if (dataParsed.type == 'new_option') {
-                    this.handleNewOption(dataParsed, connection, connections)
+                    this.handleNewOption(JSON.parse(dataString) as NewOptionEvent, connection, connections)
                 } else if (dataParsed.type == 'lock_in') {
-                    this.handleLockIn(dataParsed, connection, connections)
+                    this.handleLockIn(JSON.parse(dataString) as LockInEvent, connection, connections)
                 } else if (dataParsed.type == 'close_room') {
-                    this.handleCloseRoom(dataParsed, connection, connections)
+                    this.handleCloseRoom(JSON.parse(dataString) as CloseRoomEvent, connection, connections)
                 }
             });
 
@@ -114,7 +133,7 @@ class PeerProxy {
         }, 10000);
     }
 
-    public async handleNewOption(event: any, connection: Connection, connections: Connection[]) {
+    public async handleNewOption(event: NewOptionEvent, connection: Connection, connections: Connection[]) {
         const room = await this.roomDAO.getRoomById(event.room);
 
         if (!room) {
@@ -131,7 +150,7 @@ class PeerProxy {
         }
 
         const newOption = event.option
-        if (room.options.map((opt: any) => opt.toLowerCase()).includes(newOption.toLowerCase())) {
+        if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
             console.warn('room already includes option')
             return
         }
@@ -143,7 +162,7 @@ class PeerProxy {
         }
     }
 
-    public async handleLockIn(event: any, connection: Connection, connections: Connection[]) {
+    public async handleLockIn(event: LockInEvent, connection: Connection, connections: Connection[]) {
         const user = connection.user
         const roomId = event.room
         const room = await this.roomDAO.getRoomById(roomId);
@@ -180,7 +199,7 @@ class PeerProxy {
         }
     }
 
-    public async handleCloseRoom(event: any, connection: Connection, connections: Connection[]) {
+    public async handleCloseRoom(event: CloseRoomEvent, connection: Connection, connections: Connection[]) {
         const user = connection.user
         const roomId = event.room;
         const room = await this.roomDAO.getRoomById(roomId);

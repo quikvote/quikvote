@@ -9,8 +9,11 @@ export interface Room {
     owner: string
     state: 'open' | 'closed'
     participants: string[]
-    options: any[]
-    votes: any[]
+    options: string[]
+    votes: {
+        username: string
+        votes: Record<string, number>
+    }[]
 }
 
 export function generateRandomRoomCode(): string {
