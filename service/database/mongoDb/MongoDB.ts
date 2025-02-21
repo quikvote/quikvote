@@ -2,12 +2,12 @@
  * This file allows the use of a single MongoDB connection throughout the backend.
  */
 
-import { MongoClient } from 'mongodb';
+import { Db, MongoClient } from 'mongodb';
 import dbUrl from '../../dbconfig';
 
 let client: MongoClient | null = null;
 
-export async function getDB() {
+export async function getDB(): Promise<Db> {
     if (!client) {
         client = new MongoClient(dbUrl, {
             // These are to handle temporary connection drops
@@ -21,7 +21,7 @@ export async function getDB() {
     return client.db('quikvote');
 }
 
-export async function closeDB() {
+export async function closeDB(): Promise<void> {
     if (client) {
         await client.close();
         client = null;

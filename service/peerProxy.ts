@@ -1,10 +1,10 @@
-const { WebSocketServer } = require('ws');
+import { WebSocketServer } from 'ws';
 import calculateVoteResult from "./calculateVoteResult";
 import { UserDAO } from "./database/UserDAO";
 import { RoomDAO } from "./database/RoomDAO";
 import { HistoryDAO } from "./database/HistoryDAO";
 import { DaoFactory } from "./factory/DaoFactory";
-const uuid = require('uuid');
+import { v4 as uuidv4 } from 'uuid';
 
 const authCookieName = 'token';
 
@@ -58,7 +58,7 @@ class PeerProxy {
         let connections: any = [];
 
         wss.on('connection', (ws: any, _request: any, user: any) => {
-            const connection = { id: uuid.v4(), alive: true, ws: ws, user: user.username };
+            const connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
             connections.push(connection);
 
             ws.on('message', async (data: any) => {
@@ -74,7 +74,7 @@ class PeerProxy {
             });
 
             ws.on('close', () => {
-                const pos = connections.findIndex((o: any, i: any) => o.id === connection.id);
+                const pos = connections.findIndex((o: any) => o.id === connection.id);
 
                 if (pos >= 0) {
                     connections.splice(pos, 1);

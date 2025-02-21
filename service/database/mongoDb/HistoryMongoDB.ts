@@ -1,45 +1,38 @@
-import { ObjectId } from 'mongodb';
+import { Collection, Db, ObjectId, WithId } from 'mongodb';
 import { HistoryDAO } from '../HistoryDAO';
-import { getDB } from './MongoDB';
+import { Result } from '../../model';
 
 class HistoryMongoDB implements HistoryDAO {
-    private historyCollection: any;
+    private historyCollection: Collection<Result>;
 
-    public async init() {
-      const db = await getDB()
-      this.historyCollection = db.collection('history');
+    public constructor(db: Db) {
+        this.historyCollection = db.collection<Result>('history');
     }
 
-    public async createResult(username: string, sortedOptions: any) {
-        if (!this.historyCollection) await this.init();
-        
-        const result = {
-          owner: username,
-          sortedOptions,
-          timestamp: Date.now()
+    public async createResult(username: string, sortedOptions: string[]): Promise<WithId<Result>> {
+        const result: Result = {
+            owner: username,
+            sortedOptions,
+            timestamp: Date.now()
         }
-      
+
         const insertResult = await this.historyCollection.insertOne(result)
         return {
-          ...result,
-          _id: insertResult.insertedId
+            ...result,
+            _id: insertResult.insertedId
         }
     }
 
-    public async getResult(resultId: any) {
-        if (!this.historyCollection) await this.init();
-
-        return await this.historyCollection.findOne(new ObjectId(resultId))
+    public async getResult(resultId: string): Promise<Result | null> {
+        return await this.historyCollection.findOne({ _id: new ObjectId(resultId) })
     }
 
-    public async getHistory(username: string) {
-        if (!this.historyCollection) await this.init();
-
+    public async getHistory(username: string): Promise<Result[]> {
         const cursor = this.historyCollection.find(
-          { owner: username },
-          {
-            sort: { timestamp: -1 }
-          }
+            { owner: username },
+            {
+                sort: { timestamp: -1 }
+            }
         )
         return await cursor.toArray()
     }

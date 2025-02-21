@@ -1,5 +1,7 @@
+import { User } from "../model";
+
 export interface UserDAO {
-    getUser: (username: string) => any,
-    getUserByToken: (token: string) => any,
-    createUser: (username: string, password: string) => any,
+    getUser: (username: string) => Promise<User | null>,
+    getUserByToken: (token: string) => Promise<User | null>,
+    createUser: (username: string, password: string) => Promise<User>,
 }

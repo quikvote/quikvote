@@ -1,37 +1,35 @@
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import { UserDAO } from '../UserDAO';
-import { getDB } from './MongoDB';
+import { Collection, Db } from 'mongodb';
+import { User } from '../../model';
+
 
 class UserMongoDb implements UserDAO {
-    private userCollection: any;
+    private userCollection: Collection<User>;
 
-    public async init() {
-        const db = await getDB()
-        this.userCollection = db.collection('user');
+    public constructor(db: Db) {
+        this.userCollection = db.collection<User>('user');
     }
 
-    public async getUser(username: string): Promise<any> {
-        if (!this.userCollection) await this.init();
+    public async getUser(username: string): Promise<User | null> {
         return this.userCollection.findOne({ username });
     }
-    
-    public async getUserByToken(token: string): Promise<any> {
-        if (!this.userCollection) await this.init();
+
+    public async getUserByToken(token: string): Promise<User | null> {
         return this.userCollection.findOne({ token });
     }
-    
-    public async createUser(username: string, password: string): Promise<any> {
-        if (!this.userCollection) await this.init();
+
+    public async createUser(username: string, password: string): Promise<User> {
         const passwordHash = await bcrypt.hash(password, 10);
-    
-        const user = {
-          username,
-          password: passwordHash,
-          token: uuidv4(),
+
+        const user: User = {
+            username,
+            password: passwordHash,
+            token: uuidv4(),
         };
         await this.userCollection.insertOne(user);
-      
+
         return user;
     }
 }
