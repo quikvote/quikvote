@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId, WithId } from 'mongodb';
 import { RoomDAO } from '../RoomDAO';
-import { generateRandomRoomCode, Room } from '../../model';
+import { generateRandomRoomCode, Room, Votes } from '../../model';
 
 class RoomMongoDB implements RoomDAO {
     private roomsCollection: Collection<Room>;
@@ -58,7 +58,7 @@ class RoomMongoDB implements RoomDAO {
         return result.acknowledged && result.matchedCount === 1
     }
 
-    public async submitUserVotes(roomId: string, username: string, votes: Record<string, number>): Promise<boolean> {
+    public async submitUserVotes(roomId: string, username: string, votes: Votes): Promise<boolean> {
         const result = await this.roomsCollection.updateOne(
             { _id: new ObjectId(roomId), "votes.username": { $ne: username } },
             {

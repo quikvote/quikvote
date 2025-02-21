@@ -7,7 +7,7 @@ import { DaoFactory } from "./factory/DaoFactory";
 import { v4 as uuidv4 } from 'uuid';
 import { IncomingMessage, Server } from 'http';
 import internal from 'stream';
-import { User } from './model';
+import { User, Votes } from './model';
 
 const authCookieName = 'token';
 
@@ -29,7 +29,7 @@ interface NewOptionEvent extends WSEvent {
 
 interface LockInEvent extends WSEvent {
     room: string
-    votes: Record<string, number>
+    votes: Votes
 }
 
 interface CloseRoomEvent extends WSEvent {
@@ -47,7 +47,7 @@ class PeerProxy {
         this.historyDAO = daoFactory.historyDAO();
     }
 
-    public onSocketError(err: any) {
+    public onSocketError(err: Error) {
         console.error(err)
     }
 

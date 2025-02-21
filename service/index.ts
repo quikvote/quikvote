@@ -180,7 +180,7 @@ async function main() {
         }
 
         const newOption = req.body.option
-        if (room.options.map((opt: any) => opt.toLowerCase()).includes(newOption.toLowerCase())) {
+        if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
             res.status(409).send({ msg: 'Option already exists' })
             return
         }

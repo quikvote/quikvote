@@ -4,16 +4,20 @@ export interface User {
     token: string;
 }
 
+export type Votes = Record<string, number>
+
+export interface UserVote {
+    username: string
+    votes: Votes
+}
+
 export interface Room {
     code: string
     owner: string
     state: 'open' | 'closed'
     participants: string[]
     options: string[]
-    votes: {
-        username: string
-        votes: Record<string, number>
-    }[]
+    votes: UserVote[]
 }
 
 export function generateRandomRoomCode(): string {
