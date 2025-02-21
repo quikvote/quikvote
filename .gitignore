@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dbconfig.json
+dbconfig.ts
 
 output.css
 tailwindcss
