@@ -7,6 +7,7 @@ export default function Results() {
     document.title = 'Results'
   }, [])
   const [items, setItems] = useState([])
+  const [totals, setTotals] = useState([])
   const { id: resultsId } = useParams()
   useEffect(() => {
     const fetchItems = async () => {
@@ -18,13 +19,16 @@ export default function Results() {
       })
       const body = await response.json()
       setItems(body.results)
+      if (body.totals) {
+        setTotals(body.totals);
+      }
     }
 
     fetchItems().catch(console.error)
   }, [])
   function renderItems() {
     return items.map((item, i) => (
-      <li className="results-list__item" key={i}>{item}</li>
+      <li className="results-list__item" key={i}>{item}<div className="quantity">{totals[i]} votes</div></li>
     ))
   }
   return (

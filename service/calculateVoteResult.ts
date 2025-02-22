@@ -15,10 +15,11 @@ const calculateTotals = (userVotes: UserVote[]) => {
 }
 
 const sortOptions = (totals: Map<any,  any>) => {
-    const sortedOptions = Array.from(totals)
+    const sorted = Array.from(totals)
         .sort((a, b) => b[1] - a[1])
-        .map(([key]) => key)
-    return sortedOptions
+    const sortedOptions = sorted.map(([key]) => key);
+    const sortedTotals = sorted.map(([, value]) => value);
+    return {sortedOptions,  sortedTotals}
 }
 
-export default calculateVoteResult; calculateTotals; sortOptions;
+export {calculateVoteResult, calculateTotals, sortOptions}
