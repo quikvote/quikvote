@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './results.css';
 import { NavLink, useParams } from 'react-router-dom';
+import BarGraph from '../../components/barGraph';
 
 export default function Results() {
   useEffect(() => {
@@ -37,9 +38,8 @@ export default function Results() {
         <h1 className="header__title header__title--center">Results</h1>
       </header>
       <main className="main">
-        <ol className="results-list">
-          {renderItems()}
-        </ol>
+        <h2>{items[0] ?? ''} wins!</h2>
+        <BarGraph items={items} totals={totals}/>
         <NavLink className="main__button" to="/">Home</NavLink>
       </main>
     </>
