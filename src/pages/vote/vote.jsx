@@ -206,7 +206,7 @@ export default function Vote() {
     return (
         <>
             <header className="header header--room-code" onClick={() => setModalOpen(true)}>
-                <h3>{code}</h3>
+                <h3>Share this QuikVote!</h3>
                 <span className="material-symbols-outlined">ios_share</span>
                 <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
             </header>
