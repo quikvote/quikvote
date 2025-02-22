@@ -9,6 +9,7 @@ import Results from './pages/results/results';
 import History from './pages/history/history';
 import Login from './pages/login/login'
 import UserContextProvider from './context/userContext';
+import AnonymousLogin from "./pages/login/anonymous/anonymousLogin";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
             <Route path='/results/:id' element={<Results />} />
             <Route path='/history' element={<History />} />
             <Route path='/login' element={<Login />} />
+            <Route path="/login/anonymous" element={<AnonymousLogin />} />
             <Route path='/*' element={<NotFound />} />
           </Routes>
         </UserContextProvider>
