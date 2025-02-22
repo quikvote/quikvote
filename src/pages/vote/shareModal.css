@@ -1,0 +1,107 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 12px;
+    position: relative;
+    min-width: 320px;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border: none;
+    background: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    color: #666;
+}
+
+.share-section {
+    padding: 20px;
+    border-radius: 8px;
+    background-color: white;
+}
+
+.share-title {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    color: #333;
+    font-weight: 600;
+}
+
+.qr-container {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    background-color: white;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+.link-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.input-label {
+    display: block;
+    text-align: left;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.url-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: white;
+    color: #333;
+}
+
+.copy-btn {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-weight: 500;
+}
+
+.copy-btn:hover {
+    background-color: #0056b3;
+}
+
+.copy-btn.copied {
+    background-color: #28a745;
+}
+
+.copy-btn.copied:hover {
+    background-color: #218838;
+}
