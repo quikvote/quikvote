@@ -7,18 +7,19 @@ export default function Home() {
     document.title = 'QuikVote'
   }, [])
   const { currentUser } = useContext(UserContext)
-  const [randomCard, setRandomCard] = useState('')
-  useEffect(() => {
-    const fetchFact = async () => {
-      const response = await fetch('https://www.deckofcardsapi.com/api/deck/new/draw/?count=1')
-      if (response.status == 200) {
-        const body = await response.json()
-        const card = body.cards[0]
-        setRandomCard(`${card.value.toLowerCase()} of ${card.suit.toLowerCase()}`)
-      }
-    }
-    // fetchFact().catch(console.error)
-  }, [])
+
+  const [randomCard] = useState('')
+  //  useEffect(() => {
+  //    const fetchFact = async () => {
+  //      const response = await fetch('https://www.deckofcardsapi.com/api/deck/new/draw/?count=1')
+  //      if (response.status == 200) {
+  //        const body = await response.json()
+  //        const card = body.cards[0]
+  //        setRandomCard(`${card.value.toLowerCase()} of ${card.suit.toLowerCase()}`)
+  //      }
+  //    }
+  // fetchFact().catch(console.error)
+  //  }, [])
   return (
     <>
       <header className="header">
@@ -53,7 +54,7 @@ export default function Home() {
           </p>
         }
         {randomCard.length > 0 &&
-          <p className="home__p">Here's your lucky card: {randomCard}</p>
+          <p className="home__p">{`Here's your lucky card: ${randomCard}`}</p>
         }
       </main>
     </>
