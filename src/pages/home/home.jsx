@@ -8,18 +8,6 @@ export default function Home() {
   }, [])
   const { currentUser } = useContext(UserContext)
 
-  const [randomCard] = useState('')
-  //  useEffect(() => {
-  //    const fetchFact = async () => {
-  //      const response = await fetch('https://www.deckofcardsapi.com/api/deck/new/draw/?count=1')
-  //      if (response.status == 200) {
-  //        const body = await response.json()
-  //        const card = body.cards[0]
-  //        setRandomCard(`${card.value.toLowerCase()} of ${card.suit.toLowerCase()}`)
-  //      }
-  //    }
-  // fetchFact().catch(console.error)
-  //  }, [])
   return (
     <>
       <header className="header">
