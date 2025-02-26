@@ -270,6 +270,27 @@ paths:
         '409':
           description: Room is not open
 
+  /api/room/{id}/unlock:
+    post:
+      summary: Unlock votes for room
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Votes unlocked successfully
+        '403':
+          description: User not allowed to unlock votes
+        '404':
+          description: Room does not exist
+        '409':
+          description: Room is not open
+
   /api/room/{id}/close:
     post:
       summary: Close room and calculate results
