@@ -76,3 +76,12 @@
 .close-button:hover {
   background: #0056b3;
 }
+
+.anonymous-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.m-15 {
+  margin: 15px;
+}
