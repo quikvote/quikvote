@@ -127,6 +127,8 @@ async function main() {
             return
         }
 
+        await roomDAO.addParticipantToRoom(room.code, user!.username);
+
         res.status(200).send({ ...room, isOwner: room.owner === user!.username })
     })
 
