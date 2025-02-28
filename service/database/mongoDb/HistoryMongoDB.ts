@@ -9,14 +9,7 @@ class HistoryMongoDB implements HistoryDAO {
         this.historyCollection = db.collection<Result>('history');
     }
 
-    public async createResult(username: string, sortedOptions: string[], sortedTotals: number[]): Promise<WithId<Result>> {
-        const result: Result = {
-            owner: username,
-            sortedOptions,
-            sortedTotals,
-            timestamp: Date.now()
-        }
-
+    public async createResult(result: Result): Promise<WithId<Result>> {
         const insertResult = await this.historyCollection.insertOne(result)
         return {
             ...result,

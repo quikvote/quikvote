@@ -1,6 +1,8 @@
 import { Collection, Db, ObjectId, WithId } from 'mongodb';
 import { RoomDAO } from '../RoomDAO';
-import { generateRandomRoomCode, Room, Votes } from '../../model';
+import { Room } from '../../model';
+import { Vote, VoteConfig } from '../../model/voteTypes';
+import { generateRandomRoomCode } from '../../model/roomCode';
 
 class RoomMongoDB implements RoomDAO {
     private roomsCollection: Collection<Room>;
@@ -9,14 +11,16 @@ class RoomMongoDB implements RoomDAO {
         this.roomsCollection = db.collection<Room>('room');
     }
 
-    public async createRoom(creatorUsername: string): Promise<WithId<Room>> {
+    public async createRoom(creatorUsername: string, config: VoteConfig): Promise<WithId<Room>> {
         const newRoom: Room = {
             code: generateRandomRoomCode(),
+            state: 'open',
             owner: creatorUsername,
+            config,
             participants: [creatorUsername],
             options: [],
             votes: [],
-            state: 'open'
+            timestamp: Date.now()
         }
         const result = await this.roomsCollection.insertOne(newRoom)
 
@@ -58,14 +62,14 @@ class RoomMongoDB implements RoomDAO {
         return result.acknowledged && result.matchedCount === 1
     }
 
-    public async submitUserVotes(roomId: string, username: string, votes: Votes): Promise<boolean> {
+    public async submitUserVotes(roomId: string, username: string, votes: Vote): Promise<boolean> {
         const result = await this.roomsCollection.updateOne(
             { _id: new ObjectId(roomId), "votes.username": { $ne: username } },
             {
                 $push: {
                     votes: {
                         username,
-                        votes
+                        vote: votes
                     }
                 }
             }

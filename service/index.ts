@@ -2,10 +2,10 @@ import express, { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import PeerProxy from './peerProxy';
-import { calculateVoteResult } from './calculateVoteResult';
 import { closeDB, getDB } from './database/mongoDb/MongoDB';
 import MongoDBDaoFactory from './factory/MongoDBDaoFactory';
 import { DaoFactory } from './factory/DaoFactory';
+import { aggregationMap, VoteConfig, VoteType } from './model/voteTypes';
 
 void main()
 
@@ -107,7 +107,14 @@ async function main() {
 
     secureApiRouter.post('/room', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
-        const newRoom = await roomDAO.createRoom(user!.username);
+        const config: VoteConfig = { // TODO: get config
+            type: VoteType.Score,
+            options: {
+                maxVotesPerOption: 10,
+                minVotesPerOption: 0
+            }
+        }
+        const newRoom = await roomDAO.createRoom(user!.username, config);
 
         res.status(201).send({ id: newRoom._id, code: newRoom.code })
     })
@@ -273,10 +280,11 @@ async function main() {
 
         await roomDAO.closeRoom(roomId);
 
-        const {sortedOptions, sortedTotals} = calculateVoteResult(room.votes)
-        const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals);
+        const aggregator = aggregationMap[room.config.type]
+        const result = aggregator(room)
+        const resultWithId = await historyDAO.createResult(result);
 
-        res.status(200).send({ resultsId: result._id })
+        res.status(200).send({ resultsId: resultWithId._id })
     })
 
     secureApiRouter.get('/results/:id', async (req: Request, res: Response) => {
@@ -288,7 +296,7 @@ async function main() {
             return
         }
 
-        res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals })
+        res.status(200).send({ result: result })
     })
 
     secureApiRouter.get('/history', async (req: Request, res: Response) => {

@@ -26,7 +26,9 @@ class UserMongoDb implements UserDAO {
         const user: User = {
             username,
             password: passwordHash,
+            nickname: 'TODO',
             token: uuidv4(),
+            timestamp: Date.now()
         };
         await this.userCollection.insertOne(user);
 
