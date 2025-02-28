@@ -133,7 +133,7 @@ async function main() {
 
         await roomDAO.addParticipantToRoom(room.code, user!.username);
 
-        res.status(200).send({ ...room, isOwner: room.owner === user!.username })
+        res.status(200).send({ room, isOwner: room.owner === user!.username })
     })
 
     secureApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
@@ -169,7 +169,7 @@ async function main() {
             return
         }
 
-        res.status(200).send({ result: result })
+        res.status(200).send(result)
     })
 
     secureApiRouter.get('/history', async (req: Request, res: Response) => {

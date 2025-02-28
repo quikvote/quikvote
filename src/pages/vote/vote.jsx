@@ -1,52 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import './vote.css';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { WSHandler } from './websocket_handler'
 import ShareModal from './shareModal'
+import renderVote from './voteTypes/renderVote'
 
-const MIN_VALUE = 0
-const MAX_VALUE = 10
-
-function VoteOption(props) {
-    function increaseValue() {
-        if (props.value == MAX_VALUE) {
-            return
-        }
-        props.setValue(props.value + 1)
-    }
-    function decreaseValue() {
-        if (props.value == MIN_VALUE) {
-            return
-        }
-        props.setValue(props.value - 1)
-    }
-    return (
-        <li className="vote-options__item">{props.name}
-            <div className="vote-buttons">
-                <button
-                    className={`vote-buttons__button ${props.disabled ? 'vote-buttons__button--disabled' : ''}`}
-                    onClick={decreaseValue}
-                    disabled={props.disabled}
-                >
-                    <span className="material-symbols-outlined">arrow_downward</span>
-                </button>
-                <span className="vote-buttons__value">{props.value}</span>
-                <button
-                    className={`vote-buttons__button ${props.disabled ? 'vote-buttons__button--disabled' : ''}`}
-                    onClick={increaseValue}
-                    disabled={props.disabled}
-                >
-                    <span className="material-symbols-outlined">arrow_upward</span>
-                </button>
-            </div>
-        </li>
-    )
-}
-
-function AddOption(props) {
+function AddOption({ onSubmit, disabled }) {
     const [value, setValue] = useState('')
     function submit() {
-        props.onSubmit(value)
+        onSubmit(value)
         setValue('')
     }
     function onKeyDown(event) {
@@ -59,7 +21,7 @@ function AddOption(props) {
         submit()
     }
     function checkDisabled() {
-        return props.disabled || value == ''
+        return disabled || value == ''
     }
     return (
         <form className="add-option">
@@ -86,7 +48,8 @@ export default function Vote() {
         document.title = 'QuikVote'
     }, [])
     const [options, setOptions] = useState([])
-    const [values, setValues] = useState(new Map())
+    const [config, setConfig] = useState({})
+    const [vote, setVote] = useState({})
     const [lockedIn, setLockedIn] = useState(false)
     const [isRoomOwner, setIsRoomOwner] = useState(false)
     const [resultsId, setResultsId] = useState('')
@@ -106,14 +69,15 @@ export default function Vote() {
             })
             if (response.status == 200) {
                 const body = await response.json()
-                setCode(body.code)
-                body.options.forEach(opt => {
-                    if (!values.has(opt)) {
-                        values.set(opt, 5)
-                    }
-                })
-                setValues(new Map(values))
-                setOptions(body.options)
+                setCode(body.room.code)
+                setConfig(body.room.config)
+                // body.options.forEach(opt => {
+                //     if (!values.has(opt)) {
+                //         values.set(opt, 5)
+                //     }
+                // })
+                // setValues(new Map(values))
+                setOptions(body.room.options)
                 setIsRoomOwner(body.isOwner)
             }
         }
@@ -128,12 +92,12 @@ export default function Vote() {
     function receiveEvent(event) {
         if (event.type == 'options') {
             const new_options = event.options
-            new_options.forEach(opt => {
-                if (!values.has(opt)) {
-                    values.set(opt, 5)
-                }
-            })
-            setValues(new Map(values))
+            // new_options.forEach(opt => {
+            //     if (!values.has(opt)) {
+            //         values.set(opt, 5)
+            //     }
+            // })
+            // setValues(new Map(values))
             setOptions(new_options)
         } else if (event.type == 'results-available') {
             setLockedIn(true)
@@ -145,18 +109,13 @@ export default function Vote() {
         WSHandler.addOption(id, name)
     }
     function renderOptions() {
+        if (code.length == 0) { // haven't got response from room endpoint yet
+            return (<p>Loading...</p>)
+        }
         if (options.length == 0) {
             return (<p>Add an option...</p>)
         }
-        return options.map((name, i) => (
-            <VoteOption
-                name={name}
-                key={i}
-                value={values.get(name)}
-                setValue={(val) => setValues(new Map(values.set(name, val)))}
-                disabled={lockedIn}
-            />
-        ))
+        return renderVote(config, options, vote, setVote, lockedIn)
     }
 
     function renderButton() {
@@ -164,7 +123,7 @@ export default function Vote() {
             className="main__button"
             onClick={() => {
                 setLockedIn(true)
-                WSHandler.lockIn(id, Object.fromEntries(values))
+                WSHandler.lockIn(id, { type: config.type, ...vote })
             }}
         >Lock in vote</button>)
         const lockedInButton = (<button className="main__button main__button--disabled" disabled>Locked in</button>)
