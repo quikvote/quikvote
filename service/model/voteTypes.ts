@@ -5,14 +5,28 @@ export enum VoteType {
     Rank = 'Rank'
 }
 
-export interface BaseModOptions { }
+export interface BaseModOptions {
+    numRunnerUps: number
+    showNumVotes: boolean
+    showWhoVoted: boolean
+}
+export const defaultBaseModOptions: BaseModOptions = {
+    numRunnerUps: -1,
+    showNumVotes: true,
+    showWhoVoted: false
+}
+
 export interface ScoreModOptions extends BaseModOptions {
     minVotesPerOption: number
     maxVotesPerOption: number
 }
-export interface RankModOptions extends BaseModOptions {
-
+export const defaultScoreModOptions: ScoreModOptions = {
+    ...defaultBaseModOptions,
+    minVotesPerOption: 0,
+    maxVotesPerOption: 10
 }
+
+export interface RankModOptions extends BaseModOptions { }
 
 export type VoteConfig =
     | { type: VoteType.Score; options: ScoreModOptions }
@@ -21,6 +35,9 @@ export type VoteConfig =
 export type Vote =
     | { type: VoteType.Score; scores: Record<string, number> }
     | { type: VoteType.Rank; rank: string[] }
+
+
+// Aggregation Functions
 
 export const aggregationMap: Record<VoteType, (room: Room) => Result> = {
     [VoteType.Score]: aggregateScoreVote,
@@ -57,17 +74,16 @@ export function aggregateScoreVote(room: Room): Result {
 export function aggregateRankVote(room: Room): Result {
     const userVotes = room.votes
 
-    if (room.config.type !== VoteType.Score) {
-        throw new Error('Vote type must be "score"')
+    if (room.config.type !== VoteType.Rank) {
+        throw new Error('Vote type must be "rank"')
     }
 
     const totals: Map<string, number> = new Map()
     userVotes.forEach(userVote => {
-        if (userVote.vote.type === VoteType.Score) {
+        if (userVote.vote.type === VoteType.Rank) {
             const vote = userVote.vote
-            Object.keys(vote.scores).forEach(key => {
-                totals.set(key, (totals.get(key) ?? 0) + vote.scores[key])
-            })
+            // TODO: actually implement aggregation
+            vote.rank.forEach(v => totals.set(v, (totals.get(v) ?? 0) + 1))
         }
     });
 

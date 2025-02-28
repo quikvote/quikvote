@@ -124,7 +124,6 @@ export default function Vote() {
 
     useEffect(() => {
         WSHandler.addHandler(receiveEvent)
-
         return () => WSHandler.removeHandler(receiveEvent)
     })
 
@@ -161,13 +160,7 @@ export default function Vote() {
             />
         ))
     }
-    function copyToClipboard() {
-        navigator.clipboard.writeText(code)
-        setCopied(true)
-        setTimeout(() => {
-            setCopied(false)
-        }, 500);
-    }
+
     function renderButton() {
         const lockInButton = (<button
             className="main__button"
@@ -179,16 +172,8 @@ export default function Vote() {
         const lockedInButton = (<button className="main__button main__button--disabled" disabled>Locked in</button>)
         const closeVoteButton = (<button
             className="main__button"
-            onClick={() => fetch(`/api/room/${id}/close`, {
-                method: 'POST',
-                headers: {
-                    'Content-type': 'application/json; charset=UTF-8'
-                }
-            })
-                .then(res => res.json())
-                .then(j => setResultsId(j.resultsId))
-            }
-        >Close vote</button>)
+            onClick={() => WSHandler.closeRoom(id)}
+        > Close vote</button >)
         const viewResultsButton = (<NavLink
             className="main__button"
             to={`/results/${resultsId}`}
@@ -203,6 +188,7 @@ export default function Vote() {
         }
         return viewResultsButton
     }
+
     return (
         <>
             <header className="header header--room-code" onClick={() => setModalOpen(true)}>
