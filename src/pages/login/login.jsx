@@ -97,32 +97,42 @@ export default function Login() {
               </>
             )}
             {!currentUser && (
-              <>
-                <label className="login-field__label" htmlFor="username">Username</label>
-                <input
-                  className="login-field__input"
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  required />
-                <label className="login-field__label" htmlFor="password">Password</label>
-                <input
-                  className="login-field__input"
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required />
-                <button
-                  className="main__button"
-                  onClick={login}>Login</button>
-                <button
-                  className="main__button"
-                  onClick={register}>Register</button>
-              </>
+                <>
+                  <label className="login-field__label" htmlFor="username">Username</label>
+                  <input
+                      className="login-field__input"
+                      id="username"
+                      name="username"
+                      type="text"
+                      value={username}
+                      onChange={(event) => setUsername(event.target.value)}
+                      required />
+                  <label className="login-field__label" htmlFor="password">Password</label>
+                  <input
+                      className="login-field__input"
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      required />
+                  <button
+                      className="main__button"
+                      onClick={login}>Login</button>
+                  <button
+                      className="main__button"
+                      onClick={register}>Register</button>
+
+                  <div className="anonymous-container">
+                    <p className="m-15">or</p>
+                    <button
+                        className="main__button"
+                        onClick={() => navigate('/login/anonymous')}
+                    >
+                      Login Anonymously
+                    </button>
+                  </div>
+                </>
             )}
           </form>
         </div>
