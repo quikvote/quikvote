@@ -1,5 +1,5 @@
 import { RawData, WebSocket, WebSocketServer } from 'ws';
-import calculateVoteResult from "./calculateVoteResult";
+import { calculateVoteResult } from "./calculateVoteResult";
 import { UserDAO } from "./database/UserDAO";
 import { RoomDAO } from "./database/RoomDAO";
 import { HistoryDAO } from "./database/HistoryDAO";
@@ -193,8 +193,8 @@ class PeerProxy {
             // all users have voted
             await this.roomDAO.closeRoom(roomId);
 
-            const sortedOptions = calculateVoteResult(new_room.votes)
-            const result = await this.historyDAO.createResult(new_room.owner, sortedOptions);
+            const {sortedOptions, sortedTotals} = calculateVoteResult(new_room.votes)
+            const result = await this.historyDAO.createResult(new_room.owner, sortedOptions, sortedTotals);
 
             connections.filter(c => new_room.participants.includes(c.user)).forEach(c => {
                 c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
@@ -224,8 +224,8 @@ class PeerProxy {
 
         await this.roomDAO.closeRoom(roomId);
 
-        const sortedOptions = calculateVoteResult(room.votes)
-        const result = await this.historyDAO.createResult(user, sortedOptions);
+        const {sortedOptions, sortedTotals} = calculateVoteResult(room.votes)
+        const result = await this.historyDAO.createResult(user, sortedOptions, sortedTotals);
 
         connections.filter(c => room.participants.includes(c.user)).forEach(c => {
             c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));

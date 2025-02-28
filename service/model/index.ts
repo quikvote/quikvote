@@ -38,5 +38,6 @@ export function generateRandomRoomCode(): string {
 export interface Result {
     owner: string
     sortedOptions: string[]
+    sortedTotals: number[]
     timestamp: number
 }
