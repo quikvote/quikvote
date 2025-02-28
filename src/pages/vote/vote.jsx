@@ -90,12 +90,10 @@ export default function Vote() {
     const [lockedIn, setLockedIn] = useState(false)
     const [isRoomOwner, setIsRoomOwner] = useState(false)
     const [resultsId, setResultsId] = useState('')
-    const [copied, setCopied] = useState(false)
     const [code, setCode] = useState('')
     const [modalOpen, setModalOpen] = useState(false)
 
     const { id } = useParams()
-    const location = useLocation()
 
     useEffect(() => {
         WSHandler.connect()
@@ -143,19 +141,19 @@ export default function Vote() {
         }
     }
 
-    async function addOption(opt) {
-        WSHandler.addOption(id, opt)
+    async function addOption(name) {
+        WSHandler.addOption(id, name)
     }
     function renderOptions() {
         if (options.length == 0) {
             return (<p>Add an option...</p>)
         }
-        return options.map((opt, i) => (
+        return options.map((name, i) => (
             <VoteOption
-                name={opt}
+                name={name}
                 key={i}
-                value={values.get(opt)}
-                setValue={(val) => setValues(new Map(values.set(opt, val)))}
+                value={values.get(name)}
+                setValue={(val) => setValues(new Map(values.set(name, val)))}
                 disabled={lockedIn}
             />
         ))
@@ -194,7 +192,6 @@ export default function Vote() {
             <header className="header header--room-code" onClick={() => setModalOpen(true)}>
                 <h3>Share this QuikVote!</h3>
                 <span className="material-symbols-outlined">ios_share</span>
-                <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
             </header>
             <main className="main">
                 <ul className="vote-options">

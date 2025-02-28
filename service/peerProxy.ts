@@ -25,12 +25,12 @@ interface WSEvent {
 
 interface NewOptionEvent extends WSEvent {
     roomId: string
-    option: string
+    name: string
 }
 
 interface LockInEvent extends WSEvent {
     roomId: string
-    votes: Vote
+    vote: Vote
 }
 
 interface UnlockEvent extends WSEvent {
@@ -155,7 +155,7 @@ class PeerProxy {
             return
         }
 
-        const newOption = event.option
+        const newOption = event.name
         if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
             console.warn('room already includes option')
             return
@@ -188,7 +188,7 @@ class PeerProxy {
             return
         }
 
-        await this.roomDAO.submitUserVotes(roomId, user, event.votes);
+        await this.roomDAO.submitUserVotes(roomId, user, event.vote);
         const new_room = await this.roomDAO.getRoomById(roomId);
 
         if (!new_room) {

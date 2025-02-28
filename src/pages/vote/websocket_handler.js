@@ -33,12 +33,12 @@ class WebSocketHandler {
         };
     }
 
-    addOption(roomId, option) {
-        this.socket.send(JSON.stringify({ type: "new_option", roomId, option }));
+    addOption(roomId, name) {
+        this.socket.send(JSON.stringify({ type: "new_option", roomId, name }));
     }
 
-    lockIn(roomId, votes) {
-        this.socket.send(JSON.stringify({ type: "lock_in", roomId, votes }));
+    lockIn(roomId, vote) {
+        this.socket.send(JSON.stringify({ type: "lock_in", roomId, vote }));
     }
 
     closeRoom(roomId) {
