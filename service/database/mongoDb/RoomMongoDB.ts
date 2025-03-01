@@ -13,7 +13,7 @@ class RoomMongoDB implements RoomDAO {
         const newRoom: Room = {
             code: generateRandomRoomCode(),
             owner: creatorUsername,
-            participants: [creatorUsername],
+            participants: [],
             options: [],
             votes: [],
             state: 'open'

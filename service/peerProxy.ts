@@ -16,6 +16,7 @@ interface Connection {
     alive: boolean
     ws: WebSocket
     user: string
+    nickname: string|null
 }
 
 interface WSEvent {
@@ -91,7 +92,7 @@ class PeerProxy {
         let connections: Connection[] = [];
 
         wss.on('connection', (ws: WebSocket, _request: IncomingMessage, user: User) => {
-            const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
+            const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username, nickname: user.nickname ?? null };
             connections.push(connection);
 
             ws.on('message', async (data: RawData) => {
@@ -143,7 +144,7 @@ class PeerProxy {
             console.warn('room is closed')
             return
         }
-        if (!room.participants.includes(connection.user)) {
+        if (!room.participants.includes(connection.nickname ?? connection.user)) {
             console.warn(`room does not include user ${connection.user}`)
             return
         }
@@ -155,7 +156,7 @@ class PeerProxy {
         }
 
         if (await this.roomDAO.addOptionToRoom(event.room, newOption)) {
-            connections.filter(c => room.participants.includes(c.user)).forEach(c => {
+            connections.filter(c => room.participants.includes(c.nickname ?? c.user)).forEach(c => {
                 c.ws.send(JSON.stringify({ type: 'options', options: [...room.options, newOption] }));
             });
         }
@@ -163,6 +164,7 @@ class PeerProxy {
 
     public async handleLockIn(event: LockInEvent, connection: Connection, connections: Connection[]) {
         const user = connection.user
+        const nickname = connection.nickname;
         const roomId = event.room
         const room = await this.roomDAO.getRoomById(roomId);
 
@@ -176,12 +178,12 @@ class PeerProxy {
             return
         }
 
-        if (!room.participants.includes(user)) {
+        if (!room.participants.includes(nickname ?? user)) {
             console.warn(`room does not include user ${connection.user}`)
             return
         }
 
-        await this.roomDAO.submitUserVotes(roomId, user, event.votes);
+        await this.roomDAO.submitUserVotes(roomId, nickname ?? user, event.votes);
         const new_room = await this.roomDAO.getRoomById(roomId);
 
         if (!new_room) {
@@ -196,7 +198,7 @@ class PeerProxy {
             const {sortedOptions, sortedTotals} = calculateVoteResult(new_room.votes)
             const result = await this.historyDAO.createResult(new_room.owner, sortedOptions, sortedTotals);
 
-            connections.filter(c => new_room.participants.includes(c.user)).forEach(c => {
+            connections.filter(c => new_room.participants.includes(c.nickname ?? c.user)).forEach(c => {
                 c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
             });
         }
@@ -227,7 +229,7 @@ class PeerProxy {
         const {sortedOptions, sortedTotals} = calculateVoteResult(room.votes)
         const result = await this.historyDAO.createResult(user, sortedOptions, sortedTotals);
 
-        connections.filter(c => room.participants.includes(c.user)).forEach(c => {
+        connections.filter(c => room.participants.includes(c.nickname ?? c.user)).forEach(c => {
             c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
         });
     }

@@ -94,7 +94,7 @@ async function main() {
         const user = await getUserFromRequest(req)
 
         if (user) {
-            res.status(200).send({ username: user.username })
+            res.status(200).send({ username: user.nickname ?? user.username })
         } else {
             res.status(204).end()
         }
@@ -115,7 +115,7 @@ async function main() {
     secureApiRouter.post('/room', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
         const newRoom = await roomDAO.createRoom(user!.username);
-
+        await roomDAO.addParticipantToRoom(newRoom.code, user!.nickname ?? user!.username);
         res.status(201).send({ id: newRoom._id, code: newRoom.code })
     })
 
@@ -134,7 +134,7 @@ async function main() {
             return
         }
 
-        await roomDAO.addParticipantToRoom(room.code, user!.username);
+        await roomDAO.addParticipantToRoom(room.code, user!.nickname ?? user!.username);
 
         res.status(200).send({ ...room, isOwner: room.owner === user!.username })
     })
@@ -154,7 +154,7 @@ async function main() {
             return
         }
 
-        const success = await roomDAO.addParticipantToRoom(roomCode, user!.username);
+        const success = await roomDAO.addParticipantToRoom(roomCode, user!.nickname ?? user!.username);
 
         if (success) {
             res.status(200).send({ id: room._id })
@@ -183,7 +183,7 @@ async function main() {
             return
         }
 
-        if (!room.participants.includes(user!.username)) {
+        if (!room.participants.includes(user!.nickname ?? user!.username)) {
             res.status(403).send({ msg: 'User is not allowed to add options to room' })
             return
         }
@@ -221,11 +221,11 @@ async function main() {
             return
         }
 
-        if (!room.participants.includes(user!.username)) {
+        if (!room.participants.includes(user!.nickname ?? user!.username)) {
             res.status(403).send({ msg: 'User is not allowed to participate in room' })
             return
         }
-        await roomDAO.submitUserVotes(roomId, user!.username, req.body.votes)
+        await roomDAO.submitUserVotes(roomId, user!.nickname ?? user!.username, req.body.votes)
 
         const isOwner = room.owner === user!.username
 
@@ -247,12 +247,12 @@ async function main() {
             return
         }
 
-        if (!room.participants.includes(user!.username)) {
+        if (!room.participants.includes(user!.nickname ?? user!.username)) {
             res.status(403).send({ msg: 'User is not allowed to participate in room' })
             return
         }
 
-        await roomDAO.removeUserVotes(roomId, user!.username);
+        await roomDAO.removeUserVotes(roomId, user!.nickname ?? user!.username);
 
         res.status(200).send();
     })
