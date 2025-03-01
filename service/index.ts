@@ -45,10 +45,17 @@ async function main() {
             return
         }
 
-        user = await userDAO.createUser(req.body.username, req.body.password);
+        if (req.body.nickname) {
+            // Anonymous user
+            user = await userDAO.createUser(req.body.username, req.body.password, req.body.nickname);
+        } else {
+            user = await userDAO.createUser(req.body.username, req.body.password, null);
+        }
+
+        console.log(user);
         setAuthCookie(res, user.token);
 
-        res.status(201).send({ username: user.username });
+        res.status(201).send({ username: user.nickname ?? user.username });
     });
 
     apiRouter.post('/login', async (req: Request, res: Response) => {
