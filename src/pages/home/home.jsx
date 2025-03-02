@@ -48,9 +48,15 @@ export default function Home() {
           </>
         )}
         {!currentUser &&
-          <p className="home__p">
-            <NavLink className="home__link" to="/login">Login/Register</NavLink> to create or join a QuikVote
-          </p>
+          <>
+            <p className="home__p">
+              <NavLink className="home__link" to="/login">Login/Register</NavLink> to create or join a QuikVote
+            </p>
+            <p>or</p>
+            <p>
+              <NavLink className="home__link" to="/login/anonymous">Continue without signing in</NavLink>
+            </p>
+          </>
         }
         {randomCard.length > 0 &&
           <p className="home__p">Here's your lucky card: {randomCard}</p>
