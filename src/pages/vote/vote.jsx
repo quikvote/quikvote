@@ -141,12 +141,19 @@ export default function Vote() {
         } else if (event.type == 'results-available') {
             setLockedIn(true)
             setResultsId(event.id)
+        } else if (event.type == 'votes_unlocked') {
+            setLockedIn(false)
         }
     }
 
     async function addOption(opt) {
         WSHandler.addOption(id, opt)
     }
+
+    function unlockVotes() {
+        WSHandler.unlockVote(id)
+    }
+
     function renderOptions() {
         if (options.length == 0) {
             return (<p>Add an option...</p>)
@@ -161,6 +168,7 @@ export default function Vote() {
             />
         ))
     }
+
     function copyToClipboard() {
         navigator.clipboard.writeText(code)
         setCopied(true)
@@ -168,6 +176,7 @@ export default function Vote() {
             setCopied(false)
         }, 500);
     }
+
     function renderButton() {
         const lockInButton = (<button
             className="main__button"
@@ -176,7 +185,24 @@ export default function Vote() {
                 WSHandler.lockIn(id, Object.fromEntries(values))
             }}
         >Lock in vote</button>)
-        const lockedInButton = (<button className="main__button main__button--disabled" disabled>Locked in</button>)
+
+        const lockedInButton = (
+            <div className="button-group">
+                <button
+                    className="main__button main__button--disabled"
+                    disabled
+                >
+                    Locked in
+                </button>
+                <button
+                    className="main__button main__button--secondary"
+                    onClick={unlockVotes}
+                >
+                    Unlock vote
+                </button>
+            </div>
+        )
+
         const closeVoteButton = (<button
             className="main__button"
             onClick={() => fetch(`/api/room/${id}/close`, {
@@ -189,6 +215,7 @@ export default function Vote() {
                 .then(j => setResultsId(j.resultsId))
             }
         >Close vote</button>)
+
         const viewResultsButton = (<NavLink
             className="main__button"
             to={`/results/${resultsId}`}
@@ -198,11 +225,24 @@ export default function Vote() {
             return lockInButton
         }
         if (resultsId === '') {
-            if (isRoomOwner) { return closeVoteButton }
+            if (isRoomOwner) {
+                return (
+                    <div className="button-group">
+                        {closeVoteButton}
+                        <button
+                            className="main__button main__button--secondary"
+                            onClick={unlockVotes}
+                        >
+                            Unlock vote
+                        </button>
+                    </div>
+                )
+            }
             return lockedInButton
         }
         return viewResultsButton
     }
+
     return (
         <>
             <header className="header header--room-code" onClick={() => setModalOpen(true)}>

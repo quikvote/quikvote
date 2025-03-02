@@ -118,3 +118,20 @@
 .add-option__button--disabled:hover {
   background-color: grey;
 }
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.main__button--secondary {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.main__button--secondary:hover {
+  background-color: #e4e4e4;
+}

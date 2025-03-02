@@ -117,6 +117,11 @@ async function main() {
         const roomId = req.params.id
         const room = await roomDAO.getRoomById(roomId);
 
+        if (!user) {
+            res.status(404).send({ msg: `User not signed in` })
+            return
+        }
+
         if (!room) {
             res.status(404).send({ msg: `Room ${roomId} does not exist` })
             return
@@ -127,9 +132,9 @@ async function main() {
             return
         }
 
-        await roomDAO.addParticipantToRoom(room.code, user!.username);
+        await roomDAO.addParticipantToRoom(room.code, user.username);
 
-        res.status(200).send({ ...room, isOwner: room.owner === user!.username })
+        res.status(200).send({ ...room, isOwner: room.owner === user.username })
     })
 
     secureApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
