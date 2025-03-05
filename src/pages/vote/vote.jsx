@@ -179,15 +179,7 @@ export default function Vote() {
         const lockedInButton = (<button className="main__button main__button--disabled" disabled>Locked in</button>)
         const closeVoteButton = (<button
             className="main__button"
-            onClick={() => fetch(`/api/room/${id}/close`, {
-                method: 'POST',
-                headers: {
-                    'Content-type': 'application/json; charset=UTF-8'
-                }
-            })
-                .then(res => res.json())
-                .then(j => setResultsId(j.resultsId))
-            }
+            onClick={() => WSHandler.closeRoom(id)}
         >Close vote</button>)
         const viewResultsButton = (<NavLink
             className="main__button"

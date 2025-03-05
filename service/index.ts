@@ -156,100 +156,6 @@ async function main() {
         }
     })
 
-    secureApiRouter.post('/room/:id/options', async (req: Request, res: Response) => {
-        if (!req.body.option) {
-            res.status(400).send({ msg: 'Missing option' })
-            return
-        }
-
-        const user = await getUserFromRequest(req)
-        const roomId = req.params.id
-        const room = await roomDAO.getRoomById(roomId);
-
-        if (!room) {
-            res.status(404).send({ msg: `Room ${roomId} does not exist` })
-            return
-        }
-
-        if (room.state !== 'open') {
-            res.status(409).send({ msg: 'Room is not open' })
-            return
-        }
-
-        if (!room.participants.includes(user!.username)) {
-            res.status(403).send({ msg: 'User is not allowed to add options to room' })
-            return
-        }
-
-        const newOption = req.body.option
-        if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
-            res.status(409).send({ msg: 'Option already exists' })
-            return
-        }
-
-        if (await roomDAO.addOptionToRoom(roomId, newOption)) {
-            res.status(201).send({ options: [...room.options, newOption] })
-            return
-        }
-        res.status(500).send({ msg: 'unknown server error' })
-    })
-
-    secureApiRouter.post('/room/:id/lockin', async (req: Request, res: Response) => {
-        if (!req.body.votes) {
-            res.status(400).send({ msg: 'Missing votes' })
-            return
-        }
-
-        const user = await getUserFromRequest(req)
-        const roomId = req.params.id
-        const room = await roomDAO.getRoomById(roomId);
-
-        if (!room) {
-            res.status(404).send({ msg: `Room ${roomId} does not exist` })
-            return
-        }
-
-        if (room.state !== 'open') {
-            res.status(409).send({ msg: 'Room is not open' })
-            return
-        }
-
-        if (!room.participants.includes(user!.username)) {
-            res.status(403).send({ msg: 'User is not allowed to participate in room' })
-            return
-        }
-        await roomDAO.submitUserVotes(roomId, user!.username, req.body.votes)
-
-        const isOwner = room.owner === user!.username
-
-        res.status(200).send({ resultsId: '', isOwner })
-    })
-
-    secureApiRouter.delete('/room/:id/unlock', async (req: Request, res: Response) => {
-        const user = await getUserFromRequest(req);
-        const roomId = req.params.id;
-        const room = await roomDAO.getRoomById(roomId);
-
-        if (!room) {
-            res.status(404).send({ msg: `Room ${roomId} does not exist` })
-            return
-        }
-
-        if (room.state !== 'open') {
-            res.status(409).send({ msg: 'Room is not open' })
-            return
-        }
-
-        if (!room.participants.includes(user!.username)) {
-            res.status(403).send({ msg: 'User is not allowed to participate in room' })
-            return
-        }
-
-        await roomDAO.removeUserVotes(roomId, user!.username);
-
-        res.status(200).send();
-    })
-
     secureApiRouter.post('/room/:id/close', async (req: Request, res: Response) => {
         const user = await getUserFromRequest(req)
         const roomId = req.params.id
@@ -273,7 +179,7 @@ async function main() {
 
         await roomDAO.closeRoom(roomId);
 
-        const {sortedOptions, sortedTotals} = calculateVoteResult(room.votes)
+        const { sortedOptions, sortedTotals } = calculateVoteResult(room.votes)
         const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals);
 
         res.status(200).send({ resultsId: result._id })
