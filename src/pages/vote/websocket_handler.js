@@ -14,12 +14,12 @@ class WebSocketHandler {
     this.socket = new WebSocket(
       `${protocol}://${window.location.hostname}:${port}/ws`
     );
-    this.socket.onopen = (event) => {
+    this.socket.onopen = () => {
       this.socket.send(JSON.stringify({ type: "auth", token: token }));
       this.connected = true;
       console.log("web socket connected!");
     };
-    this.socket.onclose = (event) => {
+    this.socket.onclose = () => {
       this.connected = false;
       console.log("web socket disconnected");
     };

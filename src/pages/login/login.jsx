@@ -64,6 +64,7 @@ export default function Login() {
       setCurrentUser(null)
       // navigate('/')
     } else {
+      const body = await response.json()
       setDisplayError(`⚠ Error: ${body.msg}`);
     }
   }
