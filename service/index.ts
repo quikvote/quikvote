@@ -45,10 +45,17 @@ async function main() {
       return
     }
 
-    user = await userDAO.createUser(req.body.username, req.body.password);
+    if (req.body.nickname) {
+      // Anonymous user
+      user = await userDAO.createUser(req.body.username, req.body.password, req.body.nickname);
+    } else {
+      user = await userDAO.createUser(req.body.username, req.body.password, null);
+    }
+
+    console.log(user);
     setAuthCookie(res, user.token);
 
-    res.status(201).send({ username: user.username });
+    res.status(201).send({ username: user.nickname ?? user.username });
   });
 
   apiRouter.post('/login', async (req: Request, res: Response) => {
@@ -87,32 +94,32 @@ async function main() {
     const user = await getUserFromRequest(req)
 
     if (user) {
-      res.status(200).send({ username: user.username })
+      res.status(200).send({ username: user.nickname ?? user.username })
     } else {
       res.status(204).end()
     }
   })
 
-  const secureApiRouter = express.Router();
-  apiRouter.use(secureApiRouter);
+  const anonymousApiRouter = express.Router();
+  apiRouter.use(anonymousApiRouter);
 
-  secureApiRouter.use(async (req: Request, res: Response, next: NextFunction) => {
-    const user = await getUserFromRequest(req);
+  anonymousApiRouter.use(async (req: Request, res: Response, next: NextFunction) => {
+    let user = await getUserFromRequest(req);
     if (user) {
       next();
     } else {
-      res.status(401).send({ msg: 'Unauthorized' });
+      // Generate random UUID for username and password
+      const uuid = crypto.randomUUID()
+      const anonymousUsername = `anon_${uuid}`
+      const anonymousPassword = uuid
+      user = await userDAO.createUser(anonymousUsername, anonymousPassword, null);
+      req.cookies[authCookieName] = user.token;
+      setAuthCookie(res, user.token);
+      next();
     }
   });
 
-  secureApiRouter.post('/room', async (req: Request, res: Response) => {
-    const user = await getUserFromRequest(req)
-    const newRoom = await roomDAO.createRoom(user!.username);
-
-    res.status(201).send({ id: newRoom._id, code: newRoom.code })
-  })
-
-  secureApiRouter.get('/room/:id', async (req: Request, res: Response) => {
+  anonymousApiRouter.get('/room/:id', async (req: Request, res: Response) => {
     const user = await getUserFromRequest(req)
     const roomId = req.params.id
     const room = await roomDAO.getRoomById(roomId);
@@ -131,7 +138,7 @@ async function main() {
     res.status(200).send({ ...room, isOwner: room.owner === user!.username })
   })
 
-  secureApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
+  anonymousApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
     const user = await getUserFromRequest(req)
     const roomCode = req.params.code
     const room = await roomDAO.getRoomByCode(roomCode);
@@ -153,6 +160,24 @@ async function main() {
     } else {
       res.status(500).send({ msg: 'error adding participant' })
     }
+  })
+
+  const secureApiRouter = express.Router();
+  apiRouter.use(secureApiRouter);
+
+  secureApiRouter.use(async (req: Request, res: Response, next: NextFunction) => {
+    const user = await getUserFromRequest(req);
+    if (user) {
+      next();
+    } else {
+      res.status(401).send({ msg: 'Unauthorized' });
+    }
+  });
+
+  secureApiRouter.post('/room', async (req: Request, res: Response) => {
+    const user = await getUserFromRequest(req)
+    const newRoom = await roomDAO.createRoom(user!.username);
+    res.status(201).send({ id: newRoom._id, code: newRoom.code })
   })
 
   secureApiRouter.post('/room/:id/close', async (req: Request, res: Response) => {
