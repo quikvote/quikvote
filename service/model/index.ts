@@ -1,4 +1,5 @@
 export interface User {
+  nickname: string | null;
   username: string;
   password: string;
   token: string;
@@ -36,8 +37,8 @@ export function generateRandomRoomCode(): string {
 }
 
 export interface Result {
-    owner: string
-    sortedOptions: string[]
-    sortedTotals: number[]
-    timestamp: number
+  owner: string
+  sortedOptions: string[]
+  sortedTotals: number[]
+  timestamp: number
 }
