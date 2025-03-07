@@ -127,7 +127,8 @@ async function main() {
       return
     }
 
-    await roomDAO.addParticipantToRoom(room.code, user!.username);res.status(200).send({ ...room, isOwner: room.owner === user!.username })
+    await roomDAO.addParticipantToRoom(room.code, user!.username);
+    res.status(200).send({ ...room, isOwner: room.owner === user!.username })
   })
 
   secureApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
@@ -271,7 +272,7 @@ async function main() {
 
     await roomDAO.closeRoom(roomId);
 
-    const {sortedOptions, sortedTotals} = calculateVoteResult(room.votes)
+    const { sortedOptions, sortedTotals } = calculateVoteResult(room.votes)
     const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals);
 
     res.status(200).send({ resultsId: result._id })

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { UserContext } from '../../context/userContext';
 
@@ -40,9 +40,6 @@ export default function Home() {
           <p className="home__p">
             <NavLink className="home__link" to="/login">Login/Register</NavLink> to create or join a QuikVote
           </p>
-        }
-        {randomCard.length > 0 &&
-          <p className="home__p">{`Here's your lucky card: ${randomCard}`}</p>
         }
       </main>
     </>
