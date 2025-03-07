@@ -27,7 +27,7 @@ export function generateRandomRoomCode(): string {
     const alphanumeric = alpha.concat(numeric)
 
     let code = ''
-    let numChars = 4
+  const numChars = 4
 
     for (let i = 0; i < numChars; i++) {
         const rand = Math.floor(Math.random() * alphanumeric.length)

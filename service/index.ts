@@ -135,7 +135,6 @@ async function main() {
         }
 
         await roomDAO.addParticipantToRoom(room.code, user!.username);
-
         res.status(200).send({ ...room, isOwner: room.owner === user!.username })
     })
 
@@ -324,7 +323,7 @@ async function main() {
         res.status(200).send({ history })
     })
 
-    app.use(function(err: Error, _req: Request, res: Response, _next: NextFunction) {
+  app.use(function(err: Error, _req: Request, res: Response) {
         res.status(500).send({ type: err.name, message: err.message });
     });
 

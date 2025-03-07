@@ -27,11 +27,6 @@ export default function Results() {
 
     fetchItems().catch(console.error)
   }, [])
-  function renderItems() {
-    return items.map((item, i) => (
-      <li className="results-list__item" key={i}>{item}<div className="quantity">{totals[i]} votes</div></li>
-    ))
-  }
   return (
     <>
       <header className="header header--center">
@@ -39,7 +34,7 @@ export default function Results() {
       </header>
       <main className="main">
         <h2>{items[0] ?? ''} wins!</h2>
-        <BarGraph items={items} totals={totals}/>
+        <BarGraph items={items} totals={totals} />
         <NavLink className="main__button" to="/">Home</NavLink>
       </main>
     </>

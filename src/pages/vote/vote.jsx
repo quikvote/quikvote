@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './vote.css';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { WSHandler } from './websocket_handler'
 import ShareModal from './shareModal'
 
@@ -90,12 +90,10 @@ export default function Vote() {
     const [lockedIn, setLockedIn] = useState(false)
     const [isRoomOwner, setIsRoomOwner] = useState(false)
     const [resultsId, setResultsId] = useState('')
-    const [copied, setCopied] = useState(false)
     const [code, setCode] = useState('')
     const [modalOpen, setModalOpen] = useState(false)
 
     const { id } = useParams()
-    const location = useLocation()
 
     useEffect(() => {
         const fetchRoom = async () => {
@@ -166,13 +164,6 @@ export default function Vote() {
             />
         ))
     }
-    function copyToClipboard() {
-        navigator.clipboard.writeText(code)
-        setCopied(true)
-        setTimeout(() => {
-            setCopied(false)
-        }, 500);
-    }
     function renderButton() {
         const lockInButton = (<button
             className="main__button"
@@ -213,7 +204,6 @@ export default function Vote() {
             <header className="header header--room-code" onClick={() => setModalOpen(true)}>
                 <h3>Share this QuikVote!</h3>
                 <span className="material-symbols-outlined">ios_share</span>
-                <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
             </header>
             <main className="main">
                 <ul className="vote-options">
