@@ -92,7 +92,7 @@ class PeerProxy {
       })
     });
 
-    let connections: Connection[] = [];
+    const connections: Connection[] = [];
 
     wss.on('connection', (ws: WebSocket, _request: IncomingMessage, user: User) => {
       const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
