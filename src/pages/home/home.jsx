@@ -40,6 +40,9 @@ export default function Home() {
           </ul>
         </nav>
       </header>
+      <div className='logo__bg'>
+        <h1 className='logo'>QuikVote</h1>
+      </div>
       <main className="main">
         {currentUser && (
           <>
@@ -49,10 +52,8 @@ export default function Home() {
         )}
         {!currentUser &&
           <>
-            <p className="home__p">
-              <NavLink className="home__link" to="/login">Login/Register</NavLink> to create or join a QuikVote
-            </p>
-            <p>or</p>
+            <NavLink className="home__button" to="/login">Login/Register</NavLink>
+            <p style={{color: '#8a97b8'}}>- or -</p>
             <p>
               <NavLink className="home__link" to="/login/anonymous">Continue without signing in</NavLink>
             </p>
