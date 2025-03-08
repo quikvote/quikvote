@@ -12,6 +12,12 @@ export interface UserVote {
   votes: Votes
 }
 
+export interface VoteResult {
+  option: string
+  totals: number
+  users: string[]
+}
+
 export interface Room {
   code: string
   owner: string

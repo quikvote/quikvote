@@ -1,4 +1,4 @@
-import { UserVote } from "./model";
+import { UserVote, VoteResult } from "./model";
 
 const calculateVoteResult = (userVotes: UserVote[]) => {
     return sortOptions(calculateTotals(userVotes));
@@ -20,6 +20,13 @@ const sortOptions = (totals: Map<any,  any>) => {
     const sortedOptions = sorted.map(([key]) => key);
     const sortedTotals = sorted.map(([, value]) => value);
     return {sortedOptions,  sortedTotals}
+}
+
+const calculateVoteResultWithUsers = (userVotes: UserVote[]) => {
+    const results = new Map()
+    userVotes.forEach(userVote => {
+
+    })
 }
 
 export {calculateVoteResult, calculateTotals, sortOptions}
