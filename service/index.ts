@@ -176,7 +176,9 @@ async function main() {
 
   secureApiRouter.post('/room', async (req: Request, res: Response) => {
     const user = await getUserFromRequest(req)
-    const newRoom = await roomDAO.createRoom(user!.username);
+    const numRunnerUpsToDisplay: number = req.body.numRunnerUpsToDisplay;
+    const useAnonymousVoting: boolean = req.body.useAnonymousVoting;
+    const newRoom = await roomDAO.createRoom(user!.username, numRunnerUpsToDisplay, useAnonymousVoting);
     res.status(201).send({ id: newRoom._id, code: newRoom.code })
   })
 

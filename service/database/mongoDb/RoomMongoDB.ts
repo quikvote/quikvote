@@ -9,13 +9,15 @@ class RoomMongoDB implements RoomDAO {
         this.roomsCollection = db.collection<Room>('room');
     }
 
-    public async createRoom(creatorUsername: string): Promise<WithId<Room>> {
+    public async createRoom(creatorUsername: string, numRunnerUpsToDisplay: number, useAnonymousVoting: boolean): Promise<WithId<Room>> {
         const newRoom: Room = {
             code: generateRandomRoomCode(),
             owner: creatorUsername,
             participants: [creatorUsername],
             options: [],
             votes: [],
+            numRunnerUpsToDisplay: numRunnerUpsToDisplay,
+            useAnonymousVoting: useAnonymousVoting,
             state: 'open'
         }
         const result = await this.roomsCollection.insertOne(newRoom)

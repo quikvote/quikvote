@@ -19,6 +19,8 @@ export interface Room {
   participants: string[]
   options: string[]
   votes: UserVote[]
+  numRunnerUpsToDisplay: number
+  useAnonymousVoting: boolean
 }
 
 export function generateRandomRoomCode(): string {

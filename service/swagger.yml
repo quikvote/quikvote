@@ -131,6 +131,20 @@ paths:
   /api/room:
     post:
       summary: Create a new room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - numRunnerUpsToDisplay
+                - useAnonymousVoting
+              properties:
+                numRunnerUpsToDisplay:
+                  type: number
+                useAnonymousVoting:
+                  type: boolean
       security:
         - cookieAuth: []
       responses:

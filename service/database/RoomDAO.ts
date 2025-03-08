@@ -2,7 +2,7 @@ import { WithId } from "mongodb";
 import { Room, Votes } from "../model";
 
 export interface RoomDAO {
-    createRoom: (creatorUsername: string) => Promise<WithId<Room>>,
+    createRoom: (creatorUsername: string, numRunnerUpsToDisplay: number, useAnonymousVoting: boolean) => Promise<WithId<Room>>,
     getRoomByCode: (roomCode: string) => Promise<WithId<Room> | null>,
     getRoomById: (roomId: string) => Promise<WithId<Room> | null>,
     addParticipantToRoom: (roomCode: string, username: string) => Promise<boolean>,
