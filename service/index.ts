@@ -2,10 +2,11 @@ import express, { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import PeerProxy from './peerProxy';
-import { calculateVoteResult } from './calculateVoteResult';
+import { calculateVoteResult, calculateVoteResultWithUsers } from './calculateVoteResult';
 import { closeDB, getDB } from './database/mongoDb/MongoDB';
 import MongoDBDaoFactory from './factory/MongoDBDaoFactory';
 import { DaoFactory } from './factory/DaoFactory';
+import { UserVoteResult } from './model';
 
 void main()
 
@@ -207,6 +208,9 @@ async function main() {
 
     const { sortedOptions, sortedTotals } = calculateVoteResult(room.votes)
     const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals);
+
+    const userVoteResult: UserVoteResult = calculateVoteResultWithUsers(room.votes);
+    console.log("Value of userVoteResult:\n", userVoteResult);
 
     res.status(200).send({ resultsId: result._id })
   })

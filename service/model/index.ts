@@ -12,7 +12,9 @@ export interface UserVote {
   votes: Votes
 }
 
-export interface VoteResult {
+export type UserVoteResult = Map<string, ItemResult>
+
+export interface ItemResult {
   totals: number
   users: string[]
 }
