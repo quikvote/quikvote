@@ -13,7 +13,6 @@ export interface UserVote {
 }
 
 export interface VoteResult {
-  option: string
   totals: number
   users: string[]
 }

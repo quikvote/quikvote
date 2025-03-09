@@ -25,8 +25,10 @@ const sortOptions = (totals: Map<any,  any>) => {
 const calculateVoteResultWithUsers = (userVotes: UserVote[]) => {
     const results = new Map()
     userVotes.forEach(userVote => {
-
-    })
+        Object.keys(userVote.votes).forEach(key => {
+            results.set(key, {totals: (results.get(key).totals ?? 0) + userVote.votes[key], users: (results.get(key).users ?? []).push(userVote.username)})
+        })
+    });
 }
 
 export {calculateVoteResult, calculateTotals, sortOptions}
