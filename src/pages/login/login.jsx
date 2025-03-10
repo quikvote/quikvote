@@ -64,6 +64,7 @@ export default function Login() {
       setCurrentUser(null)
       // navigate('/')
     } else {
+      const body = await response.json()
       setDisplayError(`⚠ Error: ${body.msg}`);
     }
   }
@@ -87,7 +88,7 @@ export default function Login() {
           <form className="login__form">
             {currentUser && (
               <>
-                <p>Username: <b>{currentUser.username}</b></p>
+                <p>Name: <b>{currentUser.nickname ?? currentUser.username}</b></p>
                 <button
                   className="main__button"
                   name="action"

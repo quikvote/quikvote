@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './vote.css';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { WSHandler } from './websocket_handler'
 import ShareModal from './shareModal'
 
@@ -8,125 +8,128 @@ const MIN_VALUE = 0
 const MAX_VALUE = 10
 
 function VoteOption(props) {
-    function increaseValue() {
-        if (props.value == MAX_VALUE) {
-            return
-        }
-        props.setValue(props.value + 1)
+  function increaseValue() {
+    if (props.value == MAX_VALUE) {
+      return
     }
-    function decreaseValue() {
-        if (props.value == MIN_VALUE) {
-            return
-        }
-        props.setValue(props.value - 1)
+    props.setValue(props.value + 1)
+  }
+  function decreaseValue() {
+    if (props.value == MIN_VALUE) {
+      return
     }
-    return (
-        <li className="vote-options__item">{props.name}
-            <div className="vote-buttons">
-                <button
-                    className={`vote-buttons__button ${props.disabled ? 'vote-buttons__button--disabled' : ''}`}
-                    onClick={decreaseValue}
-                    disabled={props.disabled}
-                >
-                    <span className="material-symbols-outlined">arrow_downward</span>
-                </button>
-                <span className="vote-buttons__value">{props.value}</span>
-                <button
-                    className={`vote-buttons__button ${props.disabled ? 'vote-buttons__button--disabled' : ''}`}
-                    onClick={increaseValue}
-                    disabled={props.disabled}
-                >
-                    <span className="material-symbols-outlined">arrow_upward</span>
-                </button>
-            </div>
-        </li>
-    )
+    props.setValue(props.value - 1)
+  }
+  return (
+    <li className="vote-options__item">{props.name}
+      <div className="vote-buttons">
+        <button
+          className={`vote-buttons__button ${props.disabled ? 'vote-buttons__button--disabled' : ''}`}
+          onClick={decreaseValue}
+          disabled={props.disabled}
+        >
+          <span className="material-symbols-outlined">arrow_downward</span>
+        </button>
+        <span className="vote-buttons__value">{props.value}</span>
+        <button
+          className={`vote-buttons__button ${props.disabled ? 'vote-buttons__button--disabled' : ''}`}
+          onClick={increaseValue}
+          disabled={props.disabled}
+        >
+          <span className="material-symbols-outlined">arrow_upward</span>
+        </button>
+      </div>
+    </li>
+  )
 }
 
 function AddOption(props) {
-    const [value, setValue] = useState('')
-    function submit() {
-        props.onSubmit(value)
-        setValue('')
+  const [value, setValue] = useState('')
+  function submit() {
+    props.onSubmit(value)
+    setValue('')
+  }
+  function onKeyDown(event) {
+    if (event.key == "Enter" && !checkDisabled()) {
+      submit()
     }
-    function onKeyDown(event) {
-        if (event.key == "Enter" && !checkDisabled()) {
-            submit()
-        }
-    }
-    function addButtonClicked(event) {
-        event.preventDefault()
-        submit()
-    }
-    function checkDisabled() {
-        return props.disabled || value == ''
-    }
-    return (
-        <form className="add-option">
-            <input
-                className="add-option__input"
-                type="text"
-                onKeyDown={onKeyDown}
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-                placeholder="Add to list" />
-            <button
-                className={`add-option__button ${checkDisabled() ? 'add-option__button--disabled' : ''}`}
-                type="submit"
-                onClick={addButtonClicked}
-                disabled={checkDisabled()}>
-                <span className="material-symbols-outlined">add</span>
-            </button>
-        </form>
-    )
+  }
+  function addButtonClicked(event) {
+    event.preventDefault()
+    submit()
+  }
+  function checkDisabled() {
+    return props.disabled || value == ''
+  }
+  return (
+    <form className="add-option">
+      <input
+        className="add-option__input"
+        type="text"
+        onKeyDown={onKeyDown}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Add to list" />
+      <button
+        className={`add-option__button ${checkDisabled() ? 'add-option__button--disabled' : ''}`}
+        type="submit"
+        onClick={addButtonClicked}
+        disabled={checkDisabled()}>
+        <span className="material-symbols-outlined">add</span>
+      </button>
+    </form>
+  )
 }
 
 export default function Vote() {
-    useEffect(() => {
-        document.title = 'QuikVote'
-    }, [])
-    const [options, setOptions] = useState([])
-    const [values, setValues] = useState(new Map())
-    const [lockedIn, setLockedIn] = useState(false)
-    const [isRoomOwner, setIsRoomOwner] = useState(false)
-    const [resultsId, setResultsId] = useState('')
-    const [copied, setCopied] = useState(false)
-    const [code, setCode] = useState('')
-    const [modalOpen, setModalOpen] = useState(false)
+  useEffect(() => {
+    document.title = 'QuikVote'
+  }, [])
+  const [options, setOptions] = useState([])
+  const [values, setValues] = useState(new Map())
+  const [lockedIn, setLockedIn] = useState(false)
+  const [isRoomOwner, setIsRoomOwner] = useState(false)
+  const [resultsId, setResultsId] = useState('')
+  const [code, setCode] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
 
-    const { id } = useParams()
-    const location = useLocation()
+  const { id } = useParams()
 
-    useEffect(() => {
-        WSHandler.connect()
-        const fetchRoom = async () => {
-            const response = await fetch(`/api/room/${id}`, {
-                method: 'GET',
-                headers: {
-                    'Content-type': 'application/json; charset=UTF-8'
-                }
-            })
-            if (response.status == 200) {
-                const body = await response.json()
-                setCode(body.code)
-                body.options.forEach(opt => {
-                    if (!values.has(opt)) {
-                        values.set(opt, 5)
-                    }
-                })
-                setValues(new Map(values))
-                setOptions(body.options)
-                setIsRoomOwner(body.isOwner)
-            }
+  useEffect(() => {
+    const fetchRoom = async () => {
+      const response = await fetch(`/api/room/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-type': 'application/json; charset=UTF-8'
         }
-        fetchRoom().catch(console.error)
-    }, [])
+      })
+      if (response.status == 200) {
+        const body = await response.json()
+        setCode(body.code)
+        body.options.forEach(opt => {
+          if (!values.has(opt)) {
+            values.set(opt, 5)
+          }
+        })
+        setValues(new Map(values))
+        setOptions(body.options)
+        setIsRoomOwner(body.isOwner)
+      }
+    }
+    fetchRoom()
+      .then(() => {
+        // After fetchRoom in case an anonymous user needs to be made before using websocket.
+        WSHandler.connect()
+      })
+      .catch(console.error)
 
-    useEffect(() => {
-        WSHandler.addHandler(receiveEvent)
+  }, [])
 
-        return () => WSHandler.removeHandler(receiveEvent)
-    })
+  useEffect(() => {
+    WSHandler.addHandler(receiveEvent)
+
+    return () => WSHandler.removeHandler(receiveEvent)
+  })
 
     function receiveEvent(event) {
         if (event.type == 'options') {

@@ -27,8 +27,7 @@ export default function AnonymousLogin() {
             body: JSON.stringify({
                 username: anonymousUsername,
                 password: anonymousPassword,
-                // TODO add back when we are ready for nicknames
-                // nickname: nickname
+                nickname: nickname
             }),
             headers: {
                 'Content-type': 'application/json; charset=UTF-8',

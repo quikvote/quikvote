@@ -20,10 +20,11 @@ class UserMongoDb implements UserDAO {
         return this.userCollection.findOne({ token });
     }
 
-    public async createUser(username: string, password: string): Promise<User> {
+    public async createUser(username: string, password: string, nickname: string|null = null): Promise<User> {
         const passwordHash = await bcrypt.hash(password, 10);
 
         const user: User = {
+            nickname,
             username,
             password: passwordHash,
             token: uuidv4(),
