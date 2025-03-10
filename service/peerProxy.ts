@@ -19,7 +19,7 @@ interface Connection {
 }
 
 interface WSEvent {
-  type: 'new_option' | 'lock_in' | 'unlock' | 'close_room'
+    type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote'
 }
 
 interface NewOptionEvent extends WSEvent {
@@ -32,8 +32,8 @@ interface LockInEvent extends WSEvent {
   votes: Votes
 }
 
-interface UnlockEvent extends WSEvent {
-  room: string
+interface UnlockVoteEvent extends WSEvent {
+    room: string
 }
 
 interface CloseRoomEvent extends WSEvent {
@@ -98,20 +98,21 @@ class PeerProxy {
       const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
       connections.push(connection);
 
-      ws.on('message', async (data: RawData) => {
-        const dataString = data.toString()
-        const dataParsed = JSON.parse(dataString) as WSEvent
-        console.log(`Recieved ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`)
-        if (dataParsed.type == 'new_option') {
-          this.handleNewOption(JSON.parse(dataString) as NewOptionEvent, connection, connections)
-        } else if (dataParsed.type == 'lock_in') {
-          this.handleLockIn(JSON.parse(dataString) as LockInEvent, connection, connections)
-        } else if (dataParsed.type == 'unlock') {
-          this.handleUnlock(JSON.parse(dataString) as UnlockEvent, connection)
-        } else if (dataParsed.type == 'close_room') {
-          this.handleCloseRoom(JSON.parse(dataString) as CloseRoomEvent, connection, connections)
-        }
-      });
+            ws.on('message', async (data: RawData) => {
+                const dataString = data.toString();
+                const dataParsed = JSON.parse(dataString) as WSEvent;
+                console.log(`Received ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`);
+                if (dataParsed.type == 'new_option') {
+                    this.handleNewOption(JSON.parse(dataString) as NewOptionEvent, connection, connections);
+                } else if (dataParsed.type == 'lock_in') {
+                    this.handleLockIn(JSON.parse(dataString) as LockInEvent, connection, connections);
+                } else if (dataParsed.type == 'close_room') {
+                    this.handleCloseRoom(JSON.parse(dataString) as CloseRoomEvent, connection, connections);
+                } else if (dataParsed.type == 'unlock_vote') {
+                    this.handleUnlockVote(JSON.parse(dataString) as UnlockVoteEvent, connection, connections);
+                }
+            });
+
 
       ws.on('close', () => {
         const pos = connections.findIndex(c => c.id === connection.id);
@@ -208,33 +209,59 @@ class PeerProxy {
     }
   }
 
-  public async handleUnlock(event: UnlockEvent, connection: Connection) {
-    const user = connection.user
-    const roomId = event.room
-    const room = await this.roomDAO.getRoomById(roomId);
+    public async handleUnlockVote(event: UnlockVoteEvent, connection: Connection, connections: Connection[]) {
+        const user = connection.user;
+        const roomId = event.room;
+        const room = await this.roomDAO.getRoomById(roomId);
 
-    if (!room) {
-      console.warn(`no room with id ${event.room}`)
-      return
+        if (!room) {
+            console.warn(`no room with id ${event.room}`);
+            return;
+        }
+
+        if (room.state !== 'open') {
+            console.warn('room is already closed');
+            return;
+        }
+
+        if (!room.participants.includes(user)) {
+            console.warn(`room does not include user ${user}`);
+            return;
+        }
+
+        // Remove the user's votes
+        await this.roomDAO.removeUserVotes(roomId, user);
+
+        // Get the updated room state
+        const updatedRoom = await this.roomDAO.getRoomById(roomId);
+
+        if (!updatedRoom) {
+            console.warn(`something went wrong. room disappeared after unlocking votes. roomId: ${roomId}`);
+            return;
+        }
+
+        connection.ws.send(JSON.stringify({
+            type: 'votes_unlocked',
+            room: roomId
+        }));
+
+        // // Optionally notify the room owner that a user has unlocked their votes
+        // if (user !== updatedRoom.owner) {
+        //     const ownerConnection = connections.find(c => c.user === updatedRoom.owner);
+        //     if (ownerConnection) {
+        //         ownerConnection.ws.send(JSON.stringify({
+        //             type: 'user_unlocked_votes',
+        //             room: roomId,
+        //             user: user
+        //         }));
+        //     }
+        // }
     }
 
-    if (room.state !== 'open') {
-      console.warn('room is closed')
-      return
-    }
-
-    if (!room.participants.includes(user)) {
-      console.warn(`room does not include user ${connection.user}`)
-      return
-    }
-
-    await this.roomDAO.removeUserVotes(roomId, user)
-  }
-
-  public async handleCloseRoom(event: CloseRoomEvent, connection: Connection, connections: Connection[]) {
-    const user = connection.user
-    const roomId = event.room;
-    const room = await this.roomDAO.getRoomById(roomId);
+    public async handleCloseRoom(event: CloseRoomEvent, connection: Connection, connections: Connection[]) {
+        const user = connection.user
+        const roomId = event.room;
+        const room = await this.roomDAO.getRoomById(roomId);
 
     if (!room) {
       console.warn(`no room with id ${event.room}`)

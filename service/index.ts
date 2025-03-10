@@ -124,19 +124,25 @@ async function main() {
     const roomId = req.params.id
     const room = await roomDAO.getRoomById(roomId);
 
-    if (!room) {
-      res.status(404).send({ msg: `Room ${roomId} does not exist` })
-      return
-    }
+        if (!user) {
+            res.status(404).send({ msg: `User not signed in` })
+            return
+        }
+
+        if (!room) {
+            res.status(404).send({ msg: `Room ${roomId} does not exist` })
+            return
+        }
 
     if (room.state !== 'open') {
       res.status(409).send({ msg: 'Room is not open' })
       return
     }
 
-    await roomDAO.addParticipantToRoom(room.code, user!.username);
-    res.status(200).send({ ...room, isOwner: room.owner === user!.username })
-  })
+        await roomDAO.addParticipantToRoom(room.code, user.username);
+
+        res.status(200).send({ ...room, isOwner: room.owner === user.username })
+    })
 
   anonymousApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
     const user = await getUserFromRequest(req)
