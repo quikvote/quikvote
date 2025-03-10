@@ -178,13 +178,7 @@ async function main() {
     const user = await getUserFromRequest(req)
     const config: VoteConfig = {
       type: VoteType.Score,
-      options: {
-        numRunnerUps: -1,
-        showNumVotes: true,
-        showWhoVoted: false,
-        maxVotesPerOption: 10,
-        minVotesPerOption: 0
-      }
+      options: defaultScoreModOptions
     }
     const newRoom = await roomDAO.createRoom(user!.username, config);
     res.status(201).send({ id: newRoom._id, code: newRoom.code })
