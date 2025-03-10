@@ -6,35 +6,34 @@ import { User } from '../../model';
 
 
 class UserMongoDb implements UserDAO {
-    private userCollection: Collection<User>;
+  private userCollection: Collection<User>;
 
-    public constructor(db: Db) {
-        this.userCollection = db.collection<User>('user');
-    }
+  public constructor(db: Db) {
+    this.userCollection = db.collection<User>('user');
+  }
 
-    public async getUser(username: string): Promise<User | null> {
-        return this.userCollection.findOne({ username });
-    }
+  public async getUser(username: string): Promise<User | null> {
+    return this.userCollection.findOne({ username });
+  }
 
-    public async getUserByToken(token: string): Promise<User | null> {
-        return this.userCollection.findOne({ token });
-    }
+  public async getUserByToken(token: string): Promise<User | null> {
+    return this.userCollection.findOne({ token });
+  }
 
-    public async createUser(username: string, password: string, nickname: string|null = null): Promise<User> {
-        const passwordHash = await bcrypt.hash(password, 10);
+  public async createUser(username: string, password: string, nickname: string | null = null): Promise<User> {
+    const passwordHash = await bcrypt.hash(password, 10);
 
-        const user: User = {
-            nickname,
-            username,
-            password: passwordHash,
-            nickname: 'TODO',
-            token: uuidv4(),
-            timestamp: Date.now()
-        };
-        await this.userCollection.insertOne(user);
+    const user: User = {
+      nickname: nickname ?? '',
+      username,
+      password: passwordHash,
+      token: uuidv4(),
+      timestamp: Date.now()
+    };
+    await this.userCollection.insertOne(user);
 
-        return user;
-    }
+    return user;
+  }
 }
 
 export default UserMongoDb;
