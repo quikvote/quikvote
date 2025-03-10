@@ -92,6 +92,7 @@ export default function Vote() {
   const [resultsId, setResultsId] = useState('')
   const [code, setCode] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const { id } = useParams()
 
