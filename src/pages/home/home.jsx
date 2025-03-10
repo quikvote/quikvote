@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { UserContext } from '../../context/userContext';
 
@@ -7,18 +7,7 @@ export default function Home() {
     document.title = 'QuikVote'
   }, [])
   const { currentUser } = useContext(UserContext)
-  const [randomCard, setRandomCard] = useState('')
-  useEffect(() => {
-    const fetchFact = async () => {
-      const response = await fetch('https://www.deckofcardsapi.com/api/deck/new/draw/?count=1')
-      if (response.status == 200) {
-        const body = await response.json()
-        const card = body.cards[0]
-        setRandomCard(`${card.value.toLowerCase()} of ${card.suit.toLowerCase()}`)
-      }
-    }
-    // fetchFact().catch(console.error)
-  }, [])
+
   return (
     <>
       <header className="header">
@@ -40,6 +29,9 @@ export default function Home() {
           </ul>
         </nav>
       </header>
+      <div className='logo__bg'>
+        <h1 className='logo'>QuikVote</h1>
+      </div>
       <main className="main">
         {currentUser && (
           <>
@@ -48,12 +40,13 @@ export default function Home() {
           </>
         )}
         {!currentUser &&
-          <p className="home__p">
-            <NavLink className="home__link" to="/login">Login/Register</NavLink> to create or join a QuikVote
-          </p>
-        }
-        {randomCard.length > 0 &&
-          <p className="home__p">Here's your lucky card: {randomCard}</p>
+          <>
+            <NavLink className="home__button" to="/login">Login/Register</NavLink>
+            <p style={{color: '#8a97b8'}}>- or -</p>
+            <p>
+              <NavLink className="home__link" to="/login/anonymous">Continue without signing in</NavLink>
+            </p>
+          </>
         }
       </main>
     </>

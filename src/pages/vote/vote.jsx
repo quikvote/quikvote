@@ -59,7 +59,6 @@ export default function Vote() {
     const { id } = useParams()
 
     useEffect(() => {
-        WSHandler.connect()
         const fetchRoom = async () => {
             const response = await fetch(`/api/room/${id}`, {
                 method: 'GET',
@@ -81,7 +80,13 @@ export default function Vote() {
                 setIsRoomOwner(body.isOwner)
             }
         }
-        fetchRoom().catch(console.error)
+    fetchRoom()
+      .then(() => {
+        // After fetchRoom in case an anonymous user needs to be made before using websocket.
+        WSHandler.connect()
+      })
+      .catch(console.error)
+
     }, [])
 
     useEffect(() => {

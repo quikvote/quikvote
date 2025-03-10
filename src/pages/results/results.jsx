@@ -28,11 +28,6 @@ export default function Results() {
 
         fetchItems().catch(console.error)
     }, [])
-    function renderItems() {
-        return items.map((item, i) => (
-            <li className="results-list__item" key={i}>{item}<div className="quantity">{totals[i]} votes</div></li>
-        ))
-    }
     return (
         <>
             <header className="header header--center">

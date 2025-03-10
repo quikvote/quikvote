@@ -2,6 +2,7 @@ node_modules/
 dist/
 dbconfig.json
 dbconfig.ts
+service/dbconfig.ts
 
 output.css
 tailwindcss

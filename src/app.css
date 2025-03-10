@@ -19,6 +19,25 @@
   height: 100vh;
 }
 
+.logo {
+  font-size: 8vw;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 1000;
+  font-style: italic;
+  color: #ffffff;
+  text-shadow: #1e3a8a 2px 3px;
+}
+
+.logo__bg {
+  background-color: #3ab6ff;
+  width: 100vw;
+  height: 40%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
 .header {
   background-color: #1e3a8a;
   color: #fff;
@@ -79,6 +98,7 @@
   line-height: unset;
   font-family: unset;
   cursor: pointer;
+  transition-duration: 0.2s;
 }
 
 .main__button--disabled {
@@ -86,7 +106,7 @@
   cursor: default;
 }
 
-.button:hover {
+.main__button:hover {
   background-color: #1e40af;
 }
 
@@ -96,13 +116,32 @@
 }
 
 .home__link {
-  color: #1e3a8a;
+  color: #96a5bd;
   text-decoration: none;
   font-weight: bold;
 }
 
 .home__link:hover {
   text-decoration: underline;
+}
+
+.home__button {
+  display: block;
+  background-color: #2563eb;
+  color: #fff;
+  padding: 10px;
+  text-decoration: none;
+  border-radius: 30px;
+  font-size: 1.1em;
+  border: none;
+  line-height: unset;
+  font-family: unset;
+  cursor: pointer;
+  transition-duration: 0.4s;
+}
+
+.home__button:hover {
+  background-color: #1e40af;
 }
 
 .room-code__img {

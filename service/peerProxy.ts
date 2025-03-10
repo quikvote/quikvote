@@ -37,6 +37,10 @@ interface UnlockEvent extends WSEvent {
     roomId: string
 }
 
+interface UnlockEvent extends WSEvent {
+  room: string
+}
+
 interface CloseRoomEvent extends WSEvent {
     roomId: string
 }
@@ -93,7 +97,7 @@ class PeerProxy {
             })
         });
 
-        let connections: Connection[] = [];
+    const connections: Connection[] = [];
 
         wss.on('connection', (ws: WebSocket, _request: IncomingMessage, user: User) => {
             const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
@@ -206,7 +210,30 @@ class PeerProxy {
         }
     }
 
-    private async handleUnlock(event: UnlockEvent, connection: Connection) {
+  public async handleUnlock(event: UnlockEvent, connection: Connection) {
+    const user = connection.user
+    const roomId = event.room
+    const room = await this.roomDAO.getRoomById(roomId);
+
+    if (!room) {
+      console.warn(`no room with id ${event.room}`)
+      return
+    }
+
+    if (room.state !== 'open') {
+      console.warn('room is closed')
+      return
+    }
+
+    if (!room.participants.includes(user)) {
+      console.warn(`room does not include user ${connection.user}`)
+      return
+    }
+
+    await this.roomDAO.removeUserVotes(roomId, user)
+  }
+
+  public async handleCloseRoom(event: CloseRoomEvent, connection: Connection, connections: Connection[]) {
         const user = connection.user
         const roomId = event.roomId
         const room = await this.roomDAO.getRoomById(roomId)
