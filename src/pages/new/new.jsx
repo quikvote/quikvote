@@ -1,44 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import './new.css';
-import { NavLink } from 'react-router-dom';
-import { getIconUrlFromSeed } from '../../utils'
+import { NavLink, useNavigate } from 'react-router-dom';
+
+const defaultConfig = {
+  type: 'score',
+  options: {
+    numRunnerUps: -1,
+    showNumVotes: true,
+    showWhoVoted: false,
+
+    // TODO: change these options based on vote type
+    minVotesPerOption: 0,
+    maxVotesPerOption: 10
+  }
+}
 
 export default function New() {
   useEffect(() => {
     document.title = 'New QuikVote'
   }, [])
-  const [copied, setCopied] = useState(false)
-  const [roomCode, setRoomCode] = useState('')
-  const [roomId, setRoomId] = useState('')
-  const iconUrl = getIconUrlFromSeed(roomCode)
-  const navUrl = `/vote/${roomId}`
+  const [config, setConfig] = useState(defaultConfig)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch('/api/room', {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json; charset=UTF-8'
-        }
-      })
+  const navigate = useNavigate()
 
-      const body = await response.json()
-      if (response.status == 201) {
-        setRoomCode(body.code)
-        setRoomId(body.id)
-      }
+  async function createRoom(event) {
+    event.preventDefault()
+
+    const response = await fetch('/api/room', {
+      method: 'POST',
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8'
+      },
+      body: config
+    })
+
+    const body = await response.json()
+    if (response.status == 201) {
+      navigate(`/vote/${body.id}`)
     }
-
-    fetchData().catch(console.error)
-  }, [])
-
-  function copyToClipboard() {
-    navigator.clipboard.writeText(roomCode)
-    setCopied(true)
-    setTimeout(() => {
-      setCopied(false)
-    }, 500);
   }
+
   return (
     <>
       <header className="header header--center-with-back">
@@ -54,18 +55,8 @@ export default function New() {
         <h1 className="header__title header__title--center">Create</h1>
       </header>
       <main className="main">
-        <div>
-          {roomCode !== '' && (
-            <img src={iconUrl} alt="icon" className="room-code__img" />
-          )}
-          <button className="room-code" onClick={copyToClipboard}>
-            <b>{roomCode}</b>
-            <span className="material-symbols-outlined">content_copy</span>
-            <span className={`room-code__toast ${copied ? 'room-code__toast--visible' : ''}`}>Copied</span>
-          </button>
-          <p className="room-code__note">Share your unique QuikVote with others!</p>
-        </div>
-        <NavLink className="main__button" to={navUrl}>Begin QuikVote</NavLink>
+        <p className="room-code__note">Options go here</p>
+        <button className="main__button" onClick={createRoom}>Begin QuikVote</button>
       </main>
     </>
   )
