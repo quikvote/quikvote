@@ -7,36 +7,18 @@ export enum VoteType {
 
 // Vote options
 
-export interface BaseModOptions {
+export interface BaseModOptions { // options that apply to all vote types (eg. results options)
   numRunnerUps: number
   showNumVotes: boolean
   showWhoVoted: boolean
-}
-const defaultBaseModOptions: BaseModOptions = {
-  numRunnerUps: -1,
-  showNumVotes: true,
-  showWhoVoted: false
 }
 
 export interface ScoreModOptions extends BaseModOptions {
   minVotesPerOption: number
   maxVotesPerOption: number
 }
-const defaultScoreModOptions: ScoreModOptions = {
-  ...defaultBaseModOptions,
-  minVotesPerOption: 0,
-  maxVotesPerOption: 10
-}
 
 export interface RankModOptions extends BaseModOptions { }
-const defaultRankModOptions: RankModOptions = {
-  ...defaultBaseModOptions
-}
-
-export const defaultModOptionsMap: Record<VoteType, BaseModOptions> = {
-  [VoteType.Score]: defaultScoreModOptions,
-  [VoteType.Rank]: defaultRankModOptions
-}
 
 // Vote config
 
