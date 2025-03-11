@@ -79,6 +79,7 @@ export function aggregateScoreVote(room: Room): Result {
   }
 }
 
+// TODO: currently this bascically copies score vote aggregation. It should do it's own thing instead
 export function aggregateRankVote(room: Room): Result {
   const userVotes = room.votes
 
