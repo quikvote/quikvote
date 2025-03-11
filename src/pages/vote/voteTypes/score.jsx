@@ -23,18 +23,18 @@ export default function ScoreVote({ config, options, vote, setVote, disabled }) 
 function ScoreVoteOption({ config, name, value, setValue, disabled }) {
   useEffect(() => {
     if (value === undefined) {
-      setValue(config.minVotesPerOption)
+      setValue(config.options.minVotesPerOption)
     }
   }, [])
 
   function increaseValue() {
-    if (value == config.maxVotesPerOption) {
+    if (value == config.options.maxVotesPerOption) {
       return
     }
     setValue(value + 1)
   }
   function decreaseValue() {
-    if (value == config.minVotesPerOption) {
+    if (value == config.options.minVotesPerOption) {
       return
     }
     setValue(value - 1)
