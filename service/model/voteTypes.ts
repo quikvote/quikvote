@@ -1,7 +1,7 @@
 import { Result, Room } from ".";
 
 /*
-  * HOW TO ADD A VOTE TYPE
+  * HOW TO ADD A VOTE TYPE (backend)
   *
   * 1. Add a type to the VoteType enum (eg. Rank = 'rank')
   * 2. Add a mod options interface that extends BaseModOptions
