@@ -132,141 +132,133 @@ export default function Vote() {
     return () => WSHandler.removeHandler(receiveEvent)
   })
 
-    function receiveEvent(event) {
-        if (event.type == 'options') {
-            const new_options = event.options
-            new_options.forEach(opt => {
-                if (!values.has(opt)) {
-                    values.set(opt, 5)
-                }
-            })
-            setValues(new Map(values))
-            setOptions(new_options)
-        } else if (event.type == 'results-available') {
-            setLockedIn(true)
-            setResultsId(event.id)
-        } else if (event.type == 'votes_unlocked') {
-            setLockedIn(false)
+  function receiveEvent(event) {
+    if (event.type == 'options') {
+      const new_options = event.options
+      new_options.forEach(opt => {
+        if (!values.has(opt)) {
+          values.set(opt, 5)
         }
+      })
+      setValues(new Map(values))
+      setOptions(new_options)
+    } else if (event.type == 'results-available') {
+      setLockedIn(true)
+      setResultsId(event.id)
+    } else if (event.type == 'votes_unlocked') {
+      setLockedIn(false)
     }
+  }
 
-    async function addOption(opt) {
-        WSHandler.addOption(id, opt)
+  async function addOption(opt) {
+    WSHandler.addOption(id, opt)
+  }
+
+  function unlockVotes() {
+    WSHandler.unlockVote(id)
+  }
+
+  function renderOptions() {
+    if (options.length == 0) {
+      return (<p>Add an option...</p>)
     }
+    return options.map((opt, i) => (
+      <VoteOption
+        name={opt}
+        key={i}
+        value={values.get(opt)}
+        setValue={(val) => setValues(new Map(values.set(opt, val)))}
+        disabled={lockedIn}
+      />
+    ))
+  }
 
-    function unlockVotes() {
-        WSHandler.unlockVote(id)
-    }
+  function copyToClipboard() {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => {
+      setCopied(false)
+    }, 500);
+  }
 
-    function renderOptions() {
-        if (options.length == 0) {
-            return (<p>Add an option...</p>)
-        }
-        return options.map((opt, i) => (
-            <VoteOption
-                name={opt}
-                key={i}
-                value={values.get(opt)}
-                setValue={(val) => setValues(new Map(values.set(opt, val)))}
-                disabled={lockedIn}
-            />
-        ))
-    }
+  function renderButton() {
+    const lockInButton = (<button
+      className="main__button"
+      onClick={() => {
+        setLockedIn(true)
+        WSHandler.lockIn(id, Object.fromEntries(values))
+      }}
+    >Lock in vote</button>)
 
-    function copyToClipboard() {
-        navigator.clipboard.writeText(code)
-        setCopied(true)
-        setTimeout(() => {
-            setCopied(false)
-        }, 500);
-    }
-
-    function renderButton() {
-        const lockInButton = (<button
-            className="main__button"
-            onClick={() => {
-                setLockedIn(true)
-                WSHandler.lockIn(id, Object.fromEntries(values))
-            }}
-        >Lock in vote</button>)
-
-        const lockedInButton = (
-            <div className="button-group">
-                <button
-                    className="main__button main__button--disabled"
-                    disabled
-                >
-                    Locked in
-                </button>
-                <button
-                    className="main__button main__button--secondary"
-                    onClick={unlockVotes}
-                >
-                    Unlock vote
-                </button>
-            </div>
-        )
-
-        const closeVoteButton = (<button
-            className="main__button"
-            onClick={() => fetch(`/api/room/${id}/close`, {
-                method: 'POST',
-                headers: {
-                    'Content-type': 'application/json; charset=UTF-8'
-                }
-            })
-                .then(res => res.json())
-                .then(j => setResultsId(j.resultsId))
-            }
-        >Close vote</button>)
-
-        const viewResultsButton = (<NavLink
-            className="main__button"
-            to={`/results/${resultsId}`}
-        >View Results</NavLink>)
-
-        if (!lockedIn) {
-            return lockInButton
-        }
-        if (resultsId === '') {
-            if (isRoomOwner) {
-                return (
-                    <div className="button-group">
-                        {closeVoteButton}
-                        <button
-                            className="main__button main__button--secondary"
-                            onClick={unlockVotes}
-                        >
-                            Unlock vote
-                        </button>
-                    </div>
-                )
-            }
-            return lockedInButton
-        }
-        return viewResultsButton
-    }
-
-    return (
-        <>
-            <header className="header header--room-code" onClick={() => setModalOpen(true)}>
-                <h3>Share this QuikVote!</h3>
-                <span className="material-symbols-outlined">ios_share</span>
-                <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
-            </header>
-            <main className="main">
-                <ul className="vote-options">
-                    {renderOptions()}
-                </ul>
-                <AddOption onSubmit={addOption} disabled={lockedIn} />
-                {renderButton()}
-            </main>
-            <ShareModal
-                isOpen={modalOpen}
-                onClose={() => setModalOpen(false)}
-                code={code}
-                url={window.location.href}
-            ></ShareModal>
-        </>
+    const lockedInButton = (
+      <div className="button-group">
+        <button
+          className="main__button main__button--disabled"
+          disabled
+        >
+          Locked in
+        </button>
+        <button
+          className="main__button main__button--secondary"
+          onClick={unlockVotes}
+        >
+          Unlock vote
+        </button>
+      </div>
     )
+
+    const closeVoteButton = (<button
+      className="main__button"
+      onClick={() => WSHandler.closeRoom(id)}
+    >Close vote</button>)
+
+    const viewResultsButton = (<NavLink
+      className="main__button"
+      to={`/results/${resultsId}`}
+    >View Results</NavLink>)
+
+    if (!lockedIn) {
+      return lockInButton
+    }
+    if (resultsId === '') {
+      if (isRoomOwner) {
+        return (
+          <div className="button-group">
+            {closeVoteButton}
+            <button
+              className="main__button main__button--secondary"
+              onClick={unlockVotes}
+            >
+              Unlock vote
+            </button>
+          </div>
+        )
+      }
+      return lockedInButton
+    }
+    return viewResultsButton
+  }
+
+  return (
+    <>
+      <header className="header header--room-code" onClick={() => setModalOpen(true)}>
+        <h3>Share this QuikVote!</h3>
+        <span className="material-symbols-outlined">ios_share</span>
+        <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
+      </header>
+      <main className="main">
+        <ul className="vote-options">
+          {renderOptions()}
+        </ul>
+        <AddOption onSubmit={addOption} disabled={lockedIn} />
+        {renderButton()}
+      </main>
+      <ShareModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        code={code}
+        url={window.location.href}
+      ></ShareModal>
+    </>
+  )
 }
