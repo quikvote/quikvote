@@ -10,7 +10,6 @@ export default function ScoreVote({ config, options, vote, setVote, disabled }) 
       value={vote.scores?.[name]}
       setValue={(val) =>
         setVote({
-          ...vote,
           scores: {
             ...vote.scores,
             [name]: val

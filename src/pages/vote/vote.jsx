@@ -49,7 +49,7 @@ export default function Vote() {
   }, [])
   const [options, setOptions] = useState([])
   const [config, setConfig] = useState({})
-  const [vote, setVote] = useState({})
+  const [vote, setVote] = useState({}) // set by voteType component. should follow shape for vote type defined in service/model/voteTypes.ts
   const [lockedIn, setLockedIn] = useState(false)
   const [isRoomOwner, setIsRoomOwner] = useState(false)
   const [resultsId, setResultsId] = useState('')
