@@ -30,7 +30,7 @@ interface NewOptionEvent extends WSEvent {
 
 interface LockInEvent extends WSEvent {
   room: string
-  votes: Vote
+  vote: Vote
 }
 
 interface UnlockVoteEvent extends WSEvent {
@@ -189,7 +189,7 @@ class PeerProxy {
       return
     }
 
-    await this.roomDAO.submitUserVotes(roomId, user, event.votes);
+    await this.roomDAO.submitUserVotes(roomId, user, event.vote);
     const new_room = await this.roomDAO.getRoomById(roomId);
 
     if (!new_room) {
@@ -199,7 +199,7 @@ class PeerProxy {
 
     if (new_room.votes.length == new_room.participants.length) {
       // all users have voted
-      const result = await this.closeRoom(room)
+      const result = await this.closeRoom(new_room)
 
       connections.filter(c => new_room.participants.includes(c.user)).forEach(c => {
         c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
