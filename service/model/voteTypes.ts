@@ -1,5 +1,17 @@
 import { Result, Room } from ".";
 
+/*
+  * HOW TO ADD A VOTE TYPE
+  *
+  * 1. Add a type to the VoteType enum (eg. Rank = 'rank')
+  * 2. Add a mod options interface that extends BaseModOptions
+  * 3. Add the vote type to the VoteConfig type with the options
+  * 4. Add the vote type to the Vote type with the shape that a single user's vote should take
+  * 5. Add an aggregation function to compile several user's votes into a Result object
+  * 6. Ensure that the frontend is updated to handle the new vote type (see src/pages/vote/voteTypes/render.jsx)
+  *
+  */
+
 export enum VoteType {
   Score = 'score',
   Rank = 'rank'
