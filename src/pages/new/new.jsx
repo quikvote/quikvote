@@ -31,7 +31,7 @@ export default function New() {
       headers: {
         'Content-type': 'application/json; charset=UTF-8'
       },
-      body: config
+      body: JSON.stringify(config)
     })
 
     const body = await response.json()
