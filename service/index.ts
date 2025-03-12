@@ -2,7 +2,6 @@ import express, { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import PeerProxy from './peerProxy';
-import { calculateVoteResult } from './calculateVoteResult';
 import { closeDB, getDB } from './database/mongoDb/MongoDB';
 import MongoDBDaoFactory from './factory/MongoDBDaoFactory';
 import { DaoFactory } from './factory/DaoFactory';
@@ -205,12 +204,12 @@ async function main() {
     res.status(200).send({ history })
   })
 
+  app.get('*', (_: Request, res: Response) => {
+    res.sendFile('index.html', { root: 'public' });
+  })
+
   app.use(function(err: Error, _req: Request, res: Response) {
     res.status(500).send({ type: err.name, message: err.message });
-  });
-
-  app.use((_req: Request, res: Response) => {
-    res.sendFile('index.html', { root: 'public' });
   });
 
   function setAuthCookie(res: Response, authToken: string) {
