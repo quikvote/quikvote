@@ -20,6 +20,7 @@ function VoteOption(props) {
     }
     props.setValue(props.value - 1)
   }
+
   return (
     <li className="vote-options__item">{props.name}
       <div className="vote-buttons">
@@ -37,6 +38,12 @@ function VoteOption(props) {
           disabled={props.disabled}
         >
           <span className="material-symbols-outlined">arrow_upward</span>
+        </button>
+        <button
+          className='delete__button'
+          onClick={props.removeOption}
+        >
+          Remove
         </button>
       </div>
     </li>
@@ -154,6 +161,10 @@ export default function Vote() {
     WSHandler.addOption(id, opt)
   }
 
+  async function removeOption(opt) {
+    WSHandler.removeOption(id, opt);
+  }
+
   function unlockVotes() {
     WSHandler.unlockVote(id)
   }
@@ -168,6 +179,7 @@ export default function Vote() {
         key={i}
         value={values.get(opt)}
         setValue={(val) => setValues(new Map(values.set(opt, val)))}
+        removeOption={async () => await removeOption(opt)}
         disabled={lockedIn}
       />
     ))
