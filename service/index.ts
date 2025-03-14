@@ -2,10 +2,10 @@ import express, { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import PeerProxy from './peerProxy';
-import { calculateVoteResult } from './calculateVoteResult';
 import { closeDB, getDB } from './database/mongoDb/MongoDB';
 import MongoDBDaoFactory from './factory/MongoDBDaoFactory';
 import { DaoFactory } from './factory/DaoFactory';
+import { VoteConfig } from './model/voteTypes';
 
 void main()
 
@@ -182,7 +182,8 @@ async function main() {
 
   secureApiRouter.post('/room', async (req: Request, res: Response) => {
     const user = await getUserFromRequest(req)
-    const newRoom = await roomDAO.createRoom(user!.username);
+    const config = req.body as VoteConfig
+    const newRoom = await roomDAO.createRoom(user!.username, config);
     res.status(201).send({ id: newRoom._id, code: newRoom.code })
   })
 

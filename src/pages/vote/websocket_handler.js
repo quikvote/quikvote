@@ -12,7 +12,7 @@ class WebSocketHandler {
     const protocol = window.location.protocol === "http:" ? "ws" : "wss";
     const token = Cookies.get("token");
     this.socket = new WebSocket(
-        `${protocol}://${window.location.hostname}:${port}/ws`
+      `${protocol}://${window.location.hostname}:${port}/ws`
     );
     this.socket.onopen = () => {
       this.socket.send(JSON.stringify({ type: "auth", token: token }));
@@ -37,8 +37,8 @@ class WebSocketHandler {
     this.socket.send(JSON.stringify({ type: "new_option", room, option }));
   }
 
-  lockIn(room, votes) {
-    this.socket.send(JSON.stringify({ type: "lock_in", room, votes }));
+  lockIn(room, vote) {
+    this.socket.send(JSON.stringify({ type: "lock_in", room, vote }));
   }
 
   closeRoom(room) {

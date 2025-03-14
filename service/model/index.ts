@@ -1,3 +1,5 @@
+import { Vote, VoteConfig } from "./voteTypes";
+
 export interface User {
   nickname: string | null;
   username: string;
@@ -5,11 +7,9 @@ export interface User {
   token: string;
 }
 
-export type Votes = Record<string, number>
-
 export interface UserVote {
   username: string
-  votes: Votes
+  vote: Vote
 }
 
 export interface Room {
@@ -19,6 +19,7 @@ export interface Room {
   participants: string[]
   options: string[]
   votes: UserVote[]
+  config: VoteConfig
 }
 
 export function generateRandomRoomCode(): string {

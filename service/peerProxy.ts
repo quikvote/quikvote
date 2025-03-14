@@ -1,5 +1,4 @@
 import { RawData, WebSocket, WebSocketServer } from 'ws';
-import { calculateVoteResult } from "./calculateVoteResult";
 import { UserDAO } from "./database/UserDAO";
 import { RoomDAO } from "./database/RoomDAO";
 import { HistoryDAO } from "./database/HistoryDAO";
@@ -7,7 +6,9 @@ import { DaoFactory } from "./factory/DaoFactory";
 import { v4 as uuidv4 } from 'uuid';
 import { IncomingMessage, Server } from 'http';
 import internal from 'stream';
-import { User, Votes } from './model';
+import { Result, Room, User } from './model';
+import { aggregationMap, Vote } from './model/voteTypes';
+import { WithId } from 'mongodb';
 
 const authCookieName = 'token';
 
@@ -19,7 +20,7 @@ interface Connection {
 }
 
 interface WSEvent {
-    type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote'
+  type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote'
 }
 
 interface NewOptionEvent extends WSEvent {
@@ -29,11 +30,11 @@ interface NewOptionEvent extends WSEvent {
 
 interface LockInEvent extends WSEvent {
   room: string
-  votes: Votes
+  vote: Vote
 }
 
 interface UnlockVoteEvent extends WSEvent {
-    room: string
+  room: string
 }
 
 interface CloseRoomEvent extends WSEvent {
@@ -98,20 +99,20 @@ class PeerProxy {
       const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
       connections.push(connection);
 
-            ws.on('message', async (data: RawData) => {
-                const dataString = data.toString();
-                const dataParsed = JSON.parse(dataString) as WSEvent;
-                console.log(`Received ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`);
-                if (dataParsed.type == 'new_option') {
-                    this.handleNewOption(JSON.parse(dataString) as NewOptionEvent, connection, connections);
-                } else if (dataParsed.type == 'lock_in') {
-                    this.handleLockIn(JSON.parse(dataString) as LockInEvent, connection, connections);
-                } else if (dataParsed.type == 'close_room') {
-                    this.handleCloseRoom(JSON.parse(dataString) as CloseRoomEvent, connection, connections);
-                } else if (dataParsed.type == 'unlock_vote') {
-                    this.handleUnlockVote(JSON.parse(dataString) as UnlockVoteEvent, connection, connections);
-                }
-            });
+      ws.on('message', async (data: RawData) => {
+        const dataString = data.toString();
+        const dataParsed = JSON.parse(dataString) as WSEvent;
+        console.log(`Received ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`);
+        if (dataParsed.type == 'new_option') {
+          this.handleNewOption(JSON.parse(dataString) as NewOptionEvent, connection, connections);
+        } else if (dataParsed.type == 'lock_in') {
+          this.handleLockIn(JSON.parse(dataString) as LockInEvent, connection, connections);
+        } else if (dataParsed.type == 'close_room') {
+          this.handleCloseRoom(JSON.parse(dataString) as CloseRoomEvent, connection, connections);
+        } else if (dataParsed.type == 'unlock_vote') {
+          this.handleUnlockVote(JSON.parse(dataString) as UnlockVoteEvent, connection, connections);
+        }
+      });
 
 
       ws.on('close', () => {
@@ -188,7 +189,7 @@ class PeerProxy {
       return
     }
 
-    await this.roomDAO.submitUserVotes(roomId, user, event.votes);
+    await this.roomDAO.submitUserVotes(roomId, user, event.vote);
     const new_room = await this.roomDAO.getRoomById(roomId);
 
     if (!new_room) {
@@ -198,10 +199,7 @@ class PeerProxy {
 
     if (new_room.votes.length == new_room.participants.length) {
       // all users have voted
-      await this.roomDAO.closeRoom(roomId);
-
-      const { sortedOptions, sortedTotals } = calculateVoteResult(new_room.votes)
-      const result = await this.historyDAO.createResult(new_room.owner, sortedOptions, sortedTotals);
+      const result = await this.closeRoom(new_room)
 
       connections.filter(c => new_room.participants.includes(c.user)).forEach(c => {
         c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
@@ -209,59 +207,59 @@ class PeerProxy {
     }
   }
 
-    public async handleUnlockVote(event: UnlockVoteEvent, connection: Connection, connections: Connection[]) {
-        const user = connection.user;
-        const roomId = event.room;
-        const room = await this.roomDAO.getRoomById(roomId);
+  public async handleUnlockVote(event: UnlockVoteEvent, connection: Connection, connections: Connection[]) {
+    const user = connection.user;
+    const roomId = event.room;
+    const room = await this.roomDAO.getRoomById(roomId);
 
-        if (!room) {
-            console.warn(`no room with id ${event.room}`);
-            return;
-        }
-
-        if (room.state !== 'open') {
-            console.warn('room is already closed');
-            return;
-        }
-
-        if (!room.participants.includes(user)) {
-            console.warn(`room does not include user ${user}`);
-            return;
-        }
-
-        // Remove the user's votes
-        await this.roomDAO.removeUserVotes(roomId, user);
-
-        // Get the updated room state
-        const updatedRoom = await this.roomDAO.getRoomById(roomId);
-
-        if (!updatedRoom) {
-            console.warn(`something went wrong. room disappeared after unlocking votes. roomId: ${roomId}`);
-            return;
-        }
-
-        connection.ws.send(JSON.stringify({
-            type: 'votes_unlocked',
-            room: roomId
-        }));
-
-        // // Optionally notify the room owner that a user has unlocked their votes
-        // if (user !== updatedRoom.owner) {
-        //     const ownerConnection = connections.find(c => c.user === updatedRoom.owner);
-        //     if (ownerConnection) {
-        //         ownerConnection.ws.send(JSON.stringify({
-        //             type: 'user_unlocked_votes',
-        //             room: roomId,
-        //             user: user
-        //         }));
-        //     }
-        // }
+    if (!room) {
+      console.warn(`no room with id ${event.room}`);
+      return;
     }
 
-    public async handleCloseRoom(event: CloseRoomEvent, connection: Connection, connections: Connection[]) {
-        const user = connection.user
-        const roomId = event.room;
-        const room = await this.roomDAO.getRoomById(roomId);
+    if (room.state !== 'open') {
+      console.warn('room is already closed');
+      return;
+    }
+
+    if (!room.participants.includes(user)) {
+      console.warn(`room does not include user ${user}`);
+      return;
+    }
+
+    // Remove the user's votes
+    await this.roomDAO.removeUserVotes(roomId, user);
+
+    // Get the updated room state
+    const updatedRoom = await this.roomDAO.getRoomById(roomId);
+
+    if (!updatedRoom) {
+      console.warn(`something went wrong. room disappeared after unlocking votes. roomId: ${roomId}`);
+      return;
+    }
+
+    connection.ws.send(JSON.stringify({
+      type: 'votes_unlocked',
+      room: roomId
+    }));
+
+    // // Optionally notify the room owner that a user has unlocked their votes
+    // if (user !== updatedRoom.owner) {
+    //     const ownerConnection = connections.find(c => c.user === updatedRoom.owner);
+    //     if (ownerConnection) {
+    //         ownerConnection.ws.send(JSON.stringify({
+    //             type: 'user_unlocked_votes',
+    //             room: roomId,
+    //             user: user
+    //         }));
+    //     }
+    // }
+  }
+
+  public async handleCloseRoom(event: CloseRoomEvent, connection: Connection, connections: Connection[]) {
+    const user = connection.user
+    const roomId = event.room;
+    const room = await this.roomDAO.getRoomById(roomId);
 
     if (!room) {
       console.warn(`no room with id ${event.room}`)
@@ -278,14 +276,19 @@ class PeerProxy {
       return
     }
 
-    await this.roomDAO.closeRoom(roomId);
-
-    const { sortedOptions, sortedTotals } = calculateVoteResult(room.votes)
-    const result = await this.historyDAO.createResult(user, sortedOptions, sortedTotals);
+    const result = await this.closeRoom(room)
 
     connections.filter(c => room.participants.includes(c.user)).forEach(c => {
       c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
     });
+  }
+
+  private async closeRoom(room: WithId<Room>): Promise<WithId<Result>> {
+    await this.roomDAO.closeRoom(room._id.toHexString());
+
+    const aggregator = aggregationMap[room.config.type]
+    const result = aggregator(room)
+    return await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals);
   }
 }
 
