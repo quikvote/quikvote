@@ -19,7 +19,7 @@ export default function New() {
   useEffect(() => {
     document.title = 'New QuikVote'
   }, [])
-  const [config] = useState(defaultConfig)
+  const [config, setConfig] = useState(defaultConfig)
 
   const navigate = useNavigate()
 
