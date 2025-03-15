@@ -55,7 +55,7 @@ export default function Vote() {
   const [resultsId, setResultsId] = useState('')
   const [code, setCode] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false); // eslint-disable-line no-unused-vars
 
   const { id } = useParams()
 
@@ -120,13 +120,13 @@ export default function Vote() {
     return renderVote(config, options, vote, setVote, lockedIn)
   }
 
-  function copyToClipboard() {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => {
-      setCopied(false)
-    }, 500);
-  }
+  // function copyToClipboard() {
+  //   navigator.clipboard.writeText(code)
+  //   setCopied(true)
+  //   setTimeout(() => {
+  //     setCopied(false)
+  //   }, 500);
+  // }
 
   function renderButton() {
     const lockInButton = (<button
