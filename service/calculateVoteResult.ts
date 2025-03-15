@@ -1,7 +1,7 @@
 import { ItemResult, UserVote, UserVoteResult } from "./model";
 
-const calculateVoteResult = (userVotes: UserVote[]) => {
-    return sortOptions(calculateTotals(userVotes));
+const calculateVoteResult = (userVotes: UserVote[], numRunnerUpsToDisplay: number = Infinity) => {
+    return sortOptions(calculateVoteResultWithUsers(userVotes), numRunnerUpsToDisplay);
 }
 
 const calculateTotals = (userVotes: UserVote[]) => {
@@ -14,12 +14,13 @@ const calculateTotals = (userVotes: UserVote[]) => {
     return totals
 }
 
-const sortOptions = (totals: Map<any,  any>) => {
+const sortOptions = (totals: UserVoteResult, numRunnerUpsToDisplay: number) => {
     const sorted = Array.from(totals)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a, b) => b[1].totals - a[1].totals).slice(0, numRunnerUpsToDisplay);
     const sortedOptions = sorted.map(([key]) => key);
-    const sortedTotals = sorted.map(([, value]) => value);
-    return {sortedOptions,  sortedTotals}
+    const sortedTotals = sorted.map(([, value]) => value.totals);
+    const sortedUsers = sorted.map(([, value]) => value.users);
+    return {sortedOptions,  sortedTotals, sortedUsers}
 }
 
 const calculateVoteResultWithUsers = (userVotes: UserVote[]): UserVoteResult => {
@@ -31,10 +32,11 @@ const calculateVoteResultWithUsers = (userVotes: UserVote[]): UserVoteResult => 
             }
             const currEntry = results.get(key)!
             currEntry.totals += userVote.votes[key]
-            currEntry.users.push(userVote.username)
+            if (userVote.votes[key] > 0) { currEntry.users.push(userVote.username) }
         })
     });
+
     return results;
 }
 
-export {calculateVoteResult, calculateTotals, sortOptions, calculateVoteResultWithUsers}
+export {calculateVoteResult}

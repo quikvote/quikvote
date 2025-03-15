@@ -49,5 +49,6 @@ export interface Result {
   owner: string
   sortedOptions: string[]
   sortedTotals: number[]
+  sortedUsers: string[][]
   timestamp: number
 }

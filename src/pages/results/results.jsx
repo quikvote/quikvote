@@ -9,6 +9,7 @@ export default function Results() {
   }, [])
   const [items, setItems] = useState([])
   const [totals, setTotals] = useState([])
+  const [users, setUsers] = useState([])
   const { id: resultsId } = useParams()
   useEffect(() => {
     const fetchItems = async () => {
@@ -22,6 +23,10 @@ export default function Results() {
       setItems(body.results)
       if (body.totals) {
         setTotals(body.totals);
+      }
+      if (body.users) {
+        setUsers(body.users);
+        console.log("Sorted list of Users who voted for each option:\n", body.users);
       }
     }
 

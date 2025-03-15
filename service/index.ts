@@ -2,7 +2,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import PeerProxy from './peerProxy';
-import { calculateVoteResult, calculateVoteResultWithUsers } from './calculateVoteResult';
+import { calculateVoteResult} from './calculateVoteResult';
 import { closeDB, getDB } from './database/mongoDb/MongoDB';
 import MongoDBDaoFactory from './factory/MongoDBDaoFactory';
 import { DaoFactory } from './factory/DaoFactory';
@@ -206,11 +206,8 @@ async function main() {
 
     await roomDAO.closeRoom(roomId);
 
-    const { sortedOptions, sortedTotals } = calculateVoteResult(room.votes)
-    const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals);
-
-    const userVoteResult: UserVoteResult = calculateVoteResultWithUsers(room.votes);
-    console.log("Value of userVoteResult:\n", userVoteResult);
+    const { sortedOptions, sortedTotals, sortedUsers } = calculateVoteResult(room.votes, room.numRunnerUpsToDisplay);
+    const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals, (room.useAnonymousVoting ? [] : sortedUsers));
 
     res.status(200).send({ resultsId: result._id })
   })
@@ -224,7 +221,7 @@ async function main() {
       return
     }
 
-    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals })
+    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals, users: result.sortedUsers })
   })
 
   secureApiRouter.get('/history', async (req: Request, res: Response) => {
