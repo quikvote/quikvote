@@ -39,12 +39,12 @@ function VoteOption(props) {
         >
           <span className="material-symbols-outlined">arrow_upward</span>
         </button>
-        <button
+        {props.isRoomOwner && !props.lockedIn && <button
           className='delete__button'
           onClick={props.removeOption}
         >
           Remove
-        </button>
+        </button>}
       </div>
     </li>
   )
@@ -147,6 +147,12 @@ export default function Vote() {
           values.set(opt, 5)
         }
       })
+      // Remove any removed options from vote values
+      values.forEach((value, key) => {
+        if (!new_options.includes(key)) {
+          values.delete(key);
+        }
+      });
       setValues(new Map(values))
       setOptions(new_options)
     } else if (event.type == 'results-available') {
@@ -178,6 +184,8 @@ export default function Vote() {
         name={opt}
         key={i}
         value={values.get(opt)}
+        isRoomOwner={isRoomOwner}
+        lockedIn={lockedIn}
         setValue={(val) => setValues(new Map(values.set(opt, val)))}
         removeOption={async () => await removeOption(opt)}
         disabled={lockedIn}
