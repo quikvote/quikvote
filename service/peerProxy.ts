@@ -186,6 +186,11 @@ class PeerProxy {
       return
     }
 
+    if (room.owner !== connection.user) {
+      console.warn('user is not owner of room')
+      return
+    }
+
     const option = event.option
     if (!room.options.map(opt => opt).includes(option)) {
       console.warn('room does not include this option')
