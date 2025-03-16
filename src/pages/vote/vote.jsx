@@ -93,6 +93,9 @@ export default function Vote() {
   function receiveEvent(event) {
     if (event.type == 'options') {
       const new_options = event.options
+      if (options.length && new_options.length && options.length != new_options.length) {
+        scrollToBottom()
+      }
       setOptions(new_options)
     } else if (event.type == 'results-available') {
       setLockedIn(true)
@@ -100,6 +103,11 @@ export default function Vote() {
     } else if (event.type == 'votes_unlocked') {
       setLockedIn(false)
     }
+  }
+
+  function scrollToBottom() {
+    const scrollDiv = document.getElementById("vote-options-element")
+    scrollDiv.scrollTop = scrollDiv.scrollHeight
   }
 
   async function addOption(opt) {
@@ -193,7 +201,7 @@ export default function Vote() {
         <span className="material-symbols-outlined">ios_share</span>
         <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
       </header>
-      <main className="main">
+      <main className="main" id='vote-options-element'>
         <ul className="vote-options">
           {renderOptions()}
         </ul>
