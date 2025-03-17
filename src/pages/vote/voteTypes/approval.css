@@ -1,0 +1,58 @@
+/* Approval Vote Styles */
+.approval-instructions {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #495057;
+}
+
+.approval-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.approval-item:hover:not(.approval-item--disabled) {
+    background-color: #e9ecef;
+}
+
+.approval-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #007bff;
+    border-radius: 4px;
+    margin-right: 15px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.approval-checkbox--checked {
+    background-color: #007bff;
+    color: white;
+}
+
+.approval-checkbox--disabled {
+    opacity: 0.6;
+    cursor: default;
+    border-color: #6c757d;
+}
+
+.option-name {
+    font-size: 16px;
+    flex-grow: 1;
+}
+
+.approval-summary {
+    margin-top: 15px;
+    text-align: center;
+    color: #6c757d;
+    font-size: 14px;
+}

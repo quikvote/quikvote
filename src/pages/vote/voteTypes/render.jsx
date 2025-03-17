@@ -1,5 +1,9 @@
 import React from 'react';
-import ScoreVote from './score'
+import ScoreVote from './score';
+import RankVote from './rank';
+import TopChoicesVote from './topChoices';
+import ApprovalVote from './approval';
+import QuadraticVote from './quadratic';
 
 /*
   *
@@ -19,13 +23,45 @@ export default function renderVote(config, options, vote, setVote, disabled) {
   switch (config.type) {
     case 'score':
       return (<ScoreVote
-        config={config}
-        options={options}
-        vote={vote}
-        setVote={setVote}
-        disabled={disabled}
+          config={config}
+          options={options}
+          vote={vote}
+          setVote={setVote}
+          disabled={disabled}
+      />)
+    case 'rank':
+      return (<RankVote
+          config={config}
+          options={options}
+          vote={vote}
+          setVote={setVote}
+          disabled={disabled}
+      />)
+    case 'topChoices':
+      return (<TopChoicesVote
+          config={config}
+          options={options}
+          vote={vote}
+          setVote={setVote}
+          disabled={disabled}
+      />)
+    case 'approval':
+      return (<ApprovalVote
+          config={config}
+          options={options}
+          vote={vote}
+          setVote={setVote}
+          disabled={disabled}
+      />)
+    case 'quadratic':
+      return (<QuadraticVote
+          config={config}
+          options={options}
+          vote={vote}
+          setVote={setVote}
+          disabled={disabled}
       />)
     default:
-      return (<p>Error</p>)
+      return (<p>Error: Unknown vote type "{config.type}"</p>)
   }
 }

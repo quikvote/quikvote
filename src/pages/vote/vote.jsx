@@ -107,6 +107,7 @@ export default function Vote() {
   }
 
   function unlockVotes() {
+    setLockedIn(false)
     WSHandler.unlockVote(id)
   }
 
@@ -139,12 +140,6 @@ export default function Vote() {
 
     const lockedInButton = (
       <div className="button-group">
-        <button
-          className="main__button main__button--disabled"
-          disabled
-        >
-          Locked in
-        </button>
         <button
           className="main__button main__button--secondary"
           onClick={unlockVotes}
