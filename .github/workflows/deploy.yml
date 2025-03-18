@@ -28,7 +28,7 @@ jobs:
         cache: 'npm'
     
     - name: Install frontend dependencies
-      run: npm ci --no-optional --no-fund --force
+      run: npm ci --omit=optional --no-fund
     
     - name: Install backend dependencies
       run: npm ci --prefix ./service
