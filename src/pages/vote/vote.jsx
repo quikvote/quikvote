@@ -24,22 +24,22 @@ function AddOption(props) {
     return props.disabled || value == ''
   }
   return (
-    <form className="add-option">
-      <input
-        className="add-option__input"
-        type="text"
-        onKeyDown={onKeyDown}
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        placeholder="Add to list" />
-      <button
-        className={`add-option__button ${checkDisabled() ? 'add-option__button--disabled' : ''}`}
-        type="submit"
-        onClick={addButtonClicked}
-        disabled={checkDisabled()}>
-        <span className="material-symbols-outlined">add</span>
-      </button>
-    </form>
+      <form className="add-option">
+        <input
+            className="add-option__input"
+            type="text"
+            onKeyDown={onKeyDown}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder="Add to list" />
+        <button
+            className={`add-option__button ${checkDisabled() ? 'add-option__button--disabled' : ''}`}
+            type="submit"
+            onClick={addButtonClicked}
+            disabled={checkDisabled()}>
+          <span className="material-symbols-outlined">add</span>
+        </button>
+      </form>
   )
 }
 
@@ -57,6 +57,15 @@ export default function Vote() {
   const [modalOpen, setModalOpen] = useState(false)
   const [copied, setCopied] = useState(false); // eslint-disable-line no-unused-vars
 
+  // Multi-round specific state
+  const [currentRound, setCurrentRound] = useState(1)
+  const [maxRounds, setMaxRounds] = useState(1)
+  const [roundEnabled, setRoundEnabled] = useState(false)
+  const [eliminatedOptions, setEliminatedOptions] = useState([])
+  const [roundResults, setRoundResults] = useState([])
+  const [waitingForNextRound, setWaitingForNextRound] = useState(false)
+  const [roundComplete, setRoundComplete] = useState(false)
+
   const { id } = useParams()
 
   useEffect(() => {
@@ -73,14 +82,34 @@ export default function Vote() {
         setConfig(body.config)
         setOptions(body.options)
         setIsRoomOwner(body.isOwner)
+
+        // Initialize round state
+        if (body.config?.options?.enableRound) {
+          setRoundEnabled(true)
+          setMaxRounds(body.config.options.maxRounds || 1)
+          setCurrentRound(body.currentRound || 1)
+
+          // If we have round history, get the eliminated options
+          if (body.roundHistory && body.roundHistory.length > 0) {
+            // Collect all eliminated options from all previous rounds
+            const allEliminatedOptions = body.roundHistory.flatMap(round => round.eliminatedOptions || []);
+            setEliminatedOptions(allEliminatedOptions);
+
+            // Store results from the most recent round
+            const latestRound = body.roundHistory[body.roundHistory.length - 1];
+            if (latestRound.sortedOptions) {
+              setRoundResults(latestRound.sortedOptions);
+            }
+          }
+        }
       }
     }
     fetchRoom()
-      .then(() => {
-        // After fetchRoom in case an anonymous user needs to be made before using websocket.
-        WSHandler.connect()
-      })
-      .catch(console.error)
+        .then(() => {
+          // After fetchRoom in case an anonymous user needs to be made before using websocket.
+          WSHandler.connect()
+        })
+        .catch(console.error)
 
   }, [])
 
@@ -91,14 +120,48 @@ export default function Vote() {
   })
 
   function receiveEvent(event) {
+    console.log("WebSocket event received:", event)
+
     if (event.type == 'options') {
       const new_options = event.options
       setOptions(new_options)
     } else if (event.type == 'results-available') {
       setLockedIn(true)
-      setResultsId(event.id)
+      setResultsId(event.id || '')
+      setRoundComplete(true)
+
+      // If this is a round result
+      if (event.isRoundResult) {
+        setWaitingForNextRound(true)
+
+        if (event.eliminatedOptions) {
+          setEliminatedOptions(prev => [...prev, ...event.eliminatedOptions])
+        }
+
+        if (event.roundResults) {
+          setRoundResults(event.roundResults)
+        }
+      }
     } else if (event.type == 'votes_unlocked') {
       setLockedIn(false)
+    } else if (event.type == 'next_round_started') {
+      // Reset state for next round
+      setCurrentRound(event.roundNumber)
+      setOptions(event.remainingOptions)
+      setLockedIn(false)
+      setVote({})
+      setResultsId('')
+      setWaitingForNextRound(false)
+      setRoundComplete(false)
+
+      // Update round results and eliminated options if provided
+      if (event.roundResults) {
+        setRoundResults(event.roundResults)
+      }
+
+      if (event.eliminatedOptions) {
+        setEliminatedOptions(prev => [...prev, ...event.eliminatedOptions])
+      }
     }
   }
 
@@ -107,8 +170,11 @@ export default function Vote() {
   }
 
   function unlockVotes() {
-    setLockedIn(false)
     WSHandler.unlockVote(id)
+  }
+
+  function startNextRound() {
+    WSHandler.startNextRound(id)
   }
 
   function renderOptions() {
@@ -121,42 +187,102 @@ export default function Vote() {
     return renderVote(config, options, vote, setVote, lockedIn)
   }
 
-  // function copyToClipboard() {
-  //   navigator.clipboard.writeText(code)
-  //   setCopied(true)
-  //   setTimeout(() => {
-  //     setCopied(false)
-  //   }, 500);
-  // }
+  function renderRoundIndicator() {
+    if (!roundEnabled) return null;
+
+    return (
+        <div className="round-indicator">
+          <span className="round-badge">Round {currentRound} of {maxRounds}</span>
+          <span className="round-status">
+          {roundComplete ? "Round complete" : "Voting in progress"}
+        </span>
+        </div>
+    )
+  }
+
+  function renderPreviousRoundResults() {
+    if (!roundEnabled || currentRound === 1 || !roundResults.sortedOptions) return null;
+
+    // Show top options from previous round results
+    const topOptions = roundResults.sortedOptions.slice(0, 3);
+
+    // Show eliminated options
+    const latestEliminated = eliminatedOptions.slice(-config.options.eliminationCount);
+
+    return (
+        <div className="round-results-summary">
+          <div className="round-results-title">Round {currentRound - 1} Results:</div>
+
+          <p>Top options: {topOptions.join(', ')}</p>
+
+          <div className="eliminated-options">
+            <p>Eliminated options:</p>
+            {latestEliminated.map((option, index) => (
+                <span key={index} className="eliminated-option">{option}</span>
+            ))}
+          </div>
+        </div>
+    );
+  }
 
   function renderButton() {
+    // If we're waiting for the next round to start
+    if (waitingForNextRound) {
+      if (isRoomOwner && !config.options?.autoAdvance) {
+        return (
+            <button
+                className="next-round-button"
+                onClick={startNextRound}
+            >
+              Start Round {currentRound + 1}
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </button>
+        );
+      }
+      return (
+          <button
+              className="next-round-button next-round-button--disabled"
+              disabled
+          >
+            Waiting for next round...
+          </button>
+      );
+    }
+
+    // Standard vote buttons
     const lockInButton = (<button
-      className="main__button"
-      onClick={() => {
-        setLockedIn(true)
-        WSHandler.lockIn(id, { type: config.type, ...vote })
-      }}
+        className="main__button"
+        onClick={() => {
+          setLockedIn(true)
+          WSHandler.lockIn(id, { type: config.type, ...vote })
+        }}
     >Lock in vote</button>)
 
     const lockedInButton = (
-      <div className="button-group">
-        <button
-          className="main__button main__button--secondary"
-          onClick={unlockVotes}
-        >
-          Unlock vote
-        </button>
-      </div>
+        <div className="button-group">
+          <button
+              className="main__button main__button--disabled"
+              disabled
+          >
+            Locked in
+          </button>
+          <button
+              className="main__button main__button--secondary"
+              onClick={unlockVotes}
+          >
+            Unlock vote
+          </button>
+        </div>
     )
 
     const closeVoteButton = (<button
-      className="main__button"
-      onClick={() => WSHandler.closeRoom(id)}
+        className="main__button"
+        onClick={() => WSHandler.closeRoom(id)}
     >Close vote</button>)
 
     const viewResultsButton = (<NavLink
-      className="main__button"
-      to={`/results/${resultsId}`}
+        className="main__button"
+        to={`/results/${resultsId}`}
     >View Results</NavLink>)
 
     if (!lockedIn) {
@@ -165,42 +291,67 @@ export default function Vote() {
     if (resultsId === '') {
       if (isRoomOwner) {
         return (
-          <div className="button-group">
-            {closeVoteButton}
-            <button
-              className="main__button main__button--secondary"
-              onClick={unlockVotes}
-            >
-              Unlock vote
-            </button>
-          </div>
+            <div className="button-group">
+              {closeVoteButton}
+              <button
+                  className="main__button main__button--secondary"
+                  onClick={unlockVotes}
+              >
+                Unlock vote
+              </button>
+            </div>
         )
       }
       return lockedInButton
     }
+
+    // If this is the final round or rounds are not enabled
+    if (!roundEnabled || currentRound >= maxRounds) {
+      return viewResultsButton
+    }
+
+    // If rounds are enabled and this is not the final round
+    if (isRoomOwner && !config.options?.autoAdvance) {
+      return (
+          <div className="button-group">
+            {viewResultsButton}
+            <button
+                className="next-round-button"
+                onClick={startNextRound}
+            >
+              Start Round {currentRound + 1}
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+      )
+    }
+
     return viewResultsButton
   }
 
   return (
-    <>
-      <header className="header header--room-code" onClick={() => setModalOpen(true)}>
-        <h3>Share this QuikVote!</h3>
-        <span className="material-symbols-outlined">ios_share</span>
-        <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
-      </header>
-      <main className="main">
-        <ul className="vote-options">
-          {renderOptions()}
-        </ul>
-        <AddOption onSubmit={addOption} disabled={lockedIn} />
-        {renderButton()}
-      </main>
-      <ShareModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        code={code}
-        url={window.location.href}
-      ></ShareModal>
-    </>
+      <>
+        <header className="header header--room-code" onClick={() => setModalOpen(true)}>
+          <h3>Share this QuikVote!</h3>
+          <span className="material-symbols-outlined">ios_share</span>
+          <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
+        </header>
+        <main className="main">
+          {renderRoundIndicator()}
+          {renderPreviousRoundResults()}
+
+          <ul className="vote-options">
+            {renderOptions()}
+          </ul>
+          <AddOption onSubmit={addOption} disabled={lockedIn || waitingForNextRound} />
+          {renderButton()}
+        </main>
+        <ShareModal
+            isOpen={modalOpen}
+            onClose={() => setModalOpen(false)}
+            code={code}
+            url={window.location.href}
+        ></ShareModal>
+      </>
   )
 }

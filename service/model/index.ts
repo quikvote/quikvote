@@ -20,6 +20,18 @@ export interface Room {
   options: string[]
   votes: UserVote[]
   config: VoteConfig
+
+  // ROUND STUFF
+  currentRound?: number
+  roundHistory?: {
+    roundNumber: number
+    options: string[]
+    eliminatedOptions: string[]
+    votes: UserVote[]
+    sortedOptions?: string[]
+    sortedTotals?: number[]
+    timestamp: number
+  }[]
 }
 
 export function generateRandomRoomCode(): string {

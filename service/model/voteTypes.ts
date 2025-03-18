@@ -26,8 +26,13 @@ export interface BaseModOptions { // options that apply to all vote types (eg. r
   numRunnerUps: number
   showNumVotes: boolean
   showWhoVoted: boolean
-}
 
+  // Multi-round voting options
+  enableRound?: boolean        // Whether to enable multi-round voting
+  eliminationCount?: number    // How many options to eliminate each round
+  maxRounds?: number           // Maximum number of rounds
+  autoAdvance?: boolean        // Whether to automatically advance to next round
+}
 export interface ScoreModOptions extends BaseModOptions {
   minVotesPerOption: number
   maxVotesPerOption: number

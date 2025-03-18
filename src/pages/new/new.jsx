@@ -11,7 +11,13 @@ const defaultConfig = {
 
     // Score vote specific options
     minVotesPerOption: 0,
-    maxVotesPerOption: 10
+    maxVotesPerOption: 10,
+
+    // Round options
+    enableRound: false,
+    eliminationCount: 1,
+    maxRounds: 3,
+    autoAdvance: true
   }
 }
 
@@ -28,9 +34,14 @@ export default function New() {
   // Update vote type and reset options to appropriate defaults
   const handleVoteTypeChange = (type) => {
     let newOptions = {
+      ...config.options,
       numRunnerUps: config.options.numRunnerUps,
       showNumVotes: config.options.showNumVotes,
       showWhoVoted: config.options.showWhoVoted,
+      enableRound: config.options.enableRound,
+      eliminationCount: config.options.eliminationCount,
+      maxRounds: config.options.maxRounds,
+      autoAdvance: config.options.autoAdvance
     };
 
     // Add type-specific options
@@ -302,6 +313,68 @@ export default function New() {
             </div>
 
             <div className="option-group">
+              <h3>Multi-Round Options</h3>
+              <div className="checkbox-row">
+                <label>
+                  <input
+                      type="checkbox"
+                      checked={config.options.enableRound}
+                      onChange={(e) => handleCommonOptionChange('enableRound', e.target.checked)}
+                  />
+                  Enable Multi-round Voting
+                </label>
+              </div>
+
+              {config.options.enableRound && (
+                  <>
+                    <div className="option-row">
+                      <label htmlFor="eliminationCount">Number of Options to Eliminate Each Round:</label>
+                      <input
+                          type="number"
+                          id="eliminationCount"
+                          value={config.options.eliminationCount}
+                          onChange={(e) => handleCommonOptionChange('eliminationCount', parseInt(e.target.value))}
+                          min="1"
+                          max="5"
+                      />
+                    </div>
+
+                    <div className="option-row">
+                      <label htmlFor="maxRounds">Maximum Number of Rounds:</label>
+                      <input
+                          type="number"
+                          id="maxRounds"
+                          value={config.options.maxRounds}
+                          onChange={(e) => handleCommonOptionChange('maxRounds', parseInt(e.target.value))}
+                          min="2"
+                          max="10"
+                      />
+                    </div>
+
+                    <div className="checkbox-row">
+                      <label>
+                        <input
+                            type="checkbox"
+                            checked={config.options.autoAdvance}
+                            onChange={(e) => handleCommonOptionChange('autoAdvance', e.target.checked)}
+                        />
+                        Automatically Advance to Next Round
+                      </label>
+                    </div>
+
+                    <div className="round-info">
+                      <p>With these settings, the bottom {config.options.eliminationCount} option(s) will be eliminated after each round.</p>
+                      <p>Voting will continue for up to {config.options.maxRounds} rounds or until a winner is determined.</p>
+                      {config.options.autoAdvance ?
+                          <p>Rounds will advance automatically once all votes are in.</p> :
+                          <p>The room owner will need to manually start each new round.</p>
+                      }
+                    </div>
+                  </>
+              )}
+            </div>
+
+            <div className="option-group">
               <h3>Vote Type Description</h3>
               <div className="vote-type-description">
                 {voteType === 'score' && (
@@ -318,6 +391,12 @@ export default function New() {
                 )}
                 {voteType === 'quadratic' && (
                     <p>Quadratic voting gives participants {config.options.creditBudget} credits to allocate. The cost of votes increases quadratically (1 vote = 1 credit, 2 votes = 4 credits, etc.).</p>
+                )}
+
+                {config.options.enableRound && (
+                    <div className="round-description">
+                      <p className="round-note">Multi-round voting is enabled. After each round, the lowest-scoring options will be eliminated, and participants will vote again on the remaining options.</p>
+                    </div>
                 )}
               </div>
             </div>
