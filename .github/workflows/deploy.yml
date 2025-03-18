@@ -68,7 +68,7 @@ jobs:
         cd services/${SERVICE_NAME}
         npm install
         pm2 restart ${SERVICE_NAME}
-EOF
+        EOF
         
         # Cleanup
         rm -rf build
