@@ -28,7 +28,9 @@ jobs:
         cache: 'npm'
     
     - name: Install frontend dependencies
-      run: npm install --omit=optional --no-fund --force
+      run: |
+        rm -rf package-lock.json
+        npm install --omit=optional --no-fund --force
     
     - name: Install backend dependencies
       run: npm install --prefix ./service
