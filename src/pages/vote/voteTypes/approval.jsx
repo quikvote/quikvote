@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import './approval.css';
 
-export default function ApprovalVote({ config, options, vote, setVote, disabled }) {
+export default function ApprovalVote({ options, vote, setVote, disabled }) {
     // Initialize from existing vote if it exists
     useEffect(() => {
         if (!vote.approvals) {
@@ -49,7 +49,7 @@ export default function ApprovalVote({ config, options, vote, setVote, disabled 
 
             <div className="approval-summary">
                 {vote.approvals && (
-                    <p>You've approved {Object.values(vote.approvals).filter(Boolean).length} out of {options.length} options.</p>
+                    <p>You have approved {Object.values(vote.approvals).filter(Boolean).length} out of {options.length} options.</p>
                 )}
             </div>
         </>

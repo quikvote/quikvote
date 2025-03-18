@@ -62,6 +62,6 @@ export default function renderVote(config, options, vote, setVote, disabled) {
           disabled={disabled}
       />)
     default:
-      return (<p>Error: Unknown vote type "{config.type}"</p>)
+      return (<p>Error: Unknown vote type {config.type}</p>)
   }
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import '../vote.css';
 
-export default function RankVote({ config, options, vote, setVote, disabled }) {
+export default function RankVote({ options, vote, setVote, disabled }) {
     const [draggedItem, setDraggedItem] = useState(null);
     const [rankedItems, setRankedItems] = useState([]);
 
