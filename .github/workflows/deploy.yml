@@ -1,0 +1,75 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service name'
+        required: true
+        default: 'quikvote'
+      hostname:
+        description: 'Server hostname'
+        required: true
+        default: 'quikvote.click'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install frontend dependencies
+      run: npm install --omit=optional --no-fund --force
+    
+    - name: Install backend dependencies
+      run: npm install --prefix ./service --omit=optional
+    
+    - name: Build distribution package
+      run: |
+        rm -rf build
+        mkdir build
+        npm run build # build the React front end
+        cp -rf dist build/public # move the React front end to the target distribution
+        npm --prefix ./service run build
+        cp service/*.json build
+    
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_KEY }}
+    
+    - name: Setup known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -t rsa ${{ github.event.inputs.hostname || 'quikvote.click' }} >> ~/.ssh/known_hosts
+    
+    - name: Deploy to server
+      env:
+        SERVICE_NAME: ${{ github.event.inputs.service || 'quikvote' }}
+        HOST_NAME: ${{ github.event.inputs.hostname || 'quikvote.click' }}
+      run: |
+        # Clear out previous distribution on the target
+        ssh ubuntu@$HOST_NAME "rm -rf services/${SERVICE_NAME} && mkdir -p services/${SERVICE_NAME}"
+        
+        # Copy the distribution package to the target
+        scp -r build/* ubuntu@$HOST_NAME:services/$SERVICE_NAME
+        
+        # Deploy the service on the target
+        ssh ubuntu@$HOST_NAME << EOF
+        cd services/${SERVICE_NAME}
+        npm install
+        pm2 restart ${SERVICE_NAME}
+        EOF
+        
+        # Cleanup
+        rm -rf build
+        rm -rf dist
