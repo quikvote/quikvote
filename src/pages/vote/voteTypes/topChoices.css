@@ -1,0 +1,104 @@
+/* Top Choices Vote Styles */
+.top-choices-instructions {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #495057;
+}
+
+.selection-indicators {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.selection-indicator {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+}
+
+.indicator-label {
+    font-weight: bold;
+    color: #495057;
+}
+
+.indicator-value {
+    color: #007bff;
+}
+
+.top-choices-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.option-name {
+    font-size: 16px;
+    flex-grow: 1;
+}
+
+.top-choices-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.selection-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.selection-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.selection-button:hover:not(.selection-button--disabled) {
+    background-color: #0069d9;
+}
+
+.selection-button--disabled {
+    background-color: #6c757d;
+    cursor: default;
+    opacity: 0.6;
+}
+
+.selected-badge {
+    background-color: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.remove-selection-button {
+    background-color: transparent;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: 5px;
+}
+
+.remove-selection-button:hover {
+    color: #c82333;
+}

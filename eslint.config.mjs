@@ -5,6 +5,9 @@ import pluginReact from "eslint-plugin-react";
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
   {
+    ignores: ["**/dist/**"],
+  },
+  {
     files: ["**/*.{js,mjs,cjs,jsx}"],
     languageOptions: {
       sourceType: "module",
@@ -26,4 +29,3 @@ export default [
     },
   },
 ];
-
