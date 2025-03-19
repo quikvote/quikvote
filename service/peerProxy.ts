@@ -20,7 +20,7 @@ interface Connection {
 }
 
 interface WSEvent {
-  type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote'
+  type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round'
 }
 
 interface NewOptionEvent extends WSEvent {
@@ -38,6 +38,10 @@ interface UnlockVoteEvent extends WSEvent {
 }
 
 interface CloseRoomEvent extends WSEvent {
+  room: string
+}
+
+interface StartNextRoundEvent extends WSEvent {
   room: string
 }
 
@@ -111,6 +115,8 @@ class PeerProxy {
           this.handleCloseRoom(JSON.parse(dataString) as CloseRoomEvent, connection, connections);
         } else if (dataParsed.type == 'unlock_vote') {
           this.handleUnlockVote(JSON.parse(dataString) as UnlockVoteEvent, connection, connections);
+        } else if (dataParsed.type == 'start_next_round') {
+          this.handleStartNextRound(JSON.parse(dataString) as StartNextRoundEvent, connection, connections);
         }
       });
 
@@ -197,13 +203,76 @@ class PeerProxy {
       return
     }
 
-    if (new_room.votes.length == new_room.participants.length) {
-      // all users have voted
-      const result = await this.closeRoom(new_room)
+    // Check if multi-round voting is enabled
+    const enableMultiRound = new_room.config.options?.enableRound || false;
+    const autoAdvance = new_room.config.options?.autoAdvance || false;
+    const currentRound = new_room.currentRound || 1;
+    const maxRounds = new_room.config.options?.maxRounds || 1;
 
-      connections.filter(c => new_room.participants.includes(c.user)).forEach(c => {
-        c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
-      });
+    if (new_room.votes.length == new_room.participants.length) {
+      // All users have voted
+
+      if (enableMultiRound && currentRound < maxRounds) {
+        // This is a multi-round vote and we're not in the final round
+        const roundResult = await this.roomDAO.completeRound(roomId);
+
+        if (!roundResult) {
+          console.warn(`Failed to process round results for roomId: ${roomId}`);
+          return;
+        }
+
+        // Get the updated room with the new round history
+        const updatedRoom = await this.roomDAO.getRoomById(roomId);
+        if (!updatedRoom || !updatedRoom.roundHistory || updatedRoom.roundHistory.length === 0) {
+          console.warn(`Failed to get round history for roomId: ${roomId}`);
+          return;
+        }
+
+        const latestRound = updatedRoom.roundHistory[updatedRoom.roundHistory.length - 1];
+
+        // If auto-advance is enabled, immediately start the next round
+        if (autoAdvance) {
+          await this.roomDAO.advanceToNextRound(roomId, roundResult.remainingOptions);
+
+          // Notify all participants about the new round
+          connections.filter(c => updatedRoom.participants.includes(c.user)).forEach(c => {
+            c.ws.send(JSON.stringify({
+              type: 'next_round_started',
+              roundNumber: currentRound + 1,
+              remainingOptions: roundResult.remainingOptions,
+              eliminatedOptions: roundResult.eliminatedOptions,
+              roundResults: {
+                sortedOptions: latestRound.sortedOptions,
+                sortedTotals: latestRound.sortedTotals
+              }
+            }));
+          });
+        } else {
+          // Otherwise, notify the room about the round completion and wait for manual advancement
+          connections.filter(c => updatedRoom.participants.includes(c.user)).forEach(c => {
+            c.ws.send(JSON.stringify({
+              type: 'round_completed',
+              roundNumber: currentRound,
+              eliminatedOptions: roundResult.eliminatedOptions,
+              roundResults: {
+                sortedOptions: latestRound.sortedOptions,
+                sortedTotals: latestRound.sortedTotals
+              }
+            }));
+          });
+        }
+      } else {
+        // This is either a single-round vote or the final round of a multi-round vote
+        const result = await this.closeRoom(new_room);
+
+        connections.filter(c => new_room.participants.includes(c.user)).forEach(c => {
+          c.ws.send(JSON.stringify({
+            type: 'results-available',
+            id: result._id,
+            isFinalResult: true
+          }));
+        });
+      }
     }
   }
 
@@ -242,18 +311,6 @@ class PeerProxy {
       type: 'votes_unlocked',
       room: roomId
     }));
-
-    // // Optionally notify the room owner that a user has unlocked their votes
-    // if (user !== updatedRoom.owner) {
-    //     const ownerConnection = connections.find(c => c.user === updatedRoom.owner);
-    //     if (ownerConnection) {
-    //         ownerConnection.ws.send(JSON.stringify({
-    //             type: 'user_unlocked_votes',
-    //             room: roomId,
-    //             user: user
-    //         }));
-    //     }
-    // }
   }
 
   public async handleCloseRoom(event: CloseRoomEvent, connection: Connection, connections: Connection[]) {
@@ -279,7 +336,62 @@ class PeerProxy {
     const result = await this.closeRoom(room)
 
     connections.filter(c => room.participants.includes(c.user)).forEach(c => {
-      c.ws.send(JSON.stringify({ type: 'results-available', id: result._id }));
+      c.ws.send(JSON.stringify({
+        type: 'results-available',
+        id: result._id,
+        isFinalResult: true
+      }));
+    });
+  }
+
+  public async handleStartNextRound(event: StartNextRoundEvent, connection: Connection, connections: Connection[]) {
+    const user = connection.user;
+    const roomId = event.room;
+    const room = await this.roomDAO.getRoomById(roomId);
+
+    if (!room) {
+      console.warn(`no room with id ${event.room}`);
+      return;
+    }
+
+    if (room.state !== 'open') {
+      console.warn('room is closed');
+      return;
+    }
+
+    if (room.owner !== user) {
+      console.warn('user is not owner of room');
+      return;
+    }
+
+    // Get the latest round history
+    if (!room.roundHistory || room.roundHistory.length === 0) {
+      console.warn('no round history found to start next round');
+      return;
+    }
+
+    const latestRound = room.roundHistory[room.roundHistory.length - 1];
+    const currentOptions = room.options;
+    const eliminatedOptions = latestRound.eliminatedOptions;
+
+    // Calculate remaining options
+    const remainingOptions = currentOptions.filter(opt => !eliminatedOptions.includes(opt));
+
+    // Advance to the next round
+    await this.roomDAO.advanceToNextRound(roomId, remainingOptions);
+
+    // Notify all participants about the new round
+    connections.filter(c => room.participants.includes(c.user)).forEach(c => {
+      c.ws.send(JSON.stringify({
+        type: 'next_round_started',
+        roundNumber: (room.currentRound || 1) + 1,
+        remainingOptions: remainingOptions,
+        eliminatedOptions: eliminatedOptions,
+        roundResults: {
+          sortedOptions: latestRound.sortedOptions,
+          sortedTotals: latestRound.sortedTotals
+        }
+      }));
     });
   }
 

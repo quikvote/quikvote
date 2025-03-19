@@ -12,7 +12,7 @@ class WebSocketHandler {
     const protocol = window.location.protocol === "http:" ? "ws" : "wss";
     const token = Cookies.get("token");
     this.socket = new WebSocket(
-      `${protocol}://${window.location.hostname}:${port}/ws`
+        `${protocol}://${window.location.hostname}:${port}/ws`
     );
     this.socket.onopen = () => {
       this.socket.send(JSON.stringify({ type: "auth", token: token }));
@@ -49,12 +49,16 @@ class WebSocketHandler {
     this.socket.send(JSON.stringify({ type: "unlock_vote", room }));
   }
 
+  startNextRound(room) {
+    this.socket.send(JSON.stringify({ type: "start_next_round", room }));
+  }
+
   addHandler(handler) {
     this.handlers.push(handler);
   }
 
   removeHandler(handler) {
-    this.handlers.filter((h) => h !== handler);
+    this.handlers = this.handlers.filter((h) => h !== handler);
   }
 
   receiveEvent(event) {

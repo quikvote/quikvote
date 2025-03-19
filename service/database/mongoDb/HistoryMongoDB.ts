@@ -37,7 +37,6 @@ class HistoryMongoDB implements HistoryDAO {
         )
         return await cursor.toArray()
     }
-
 }
 
 export default HistoryMongoDB;
