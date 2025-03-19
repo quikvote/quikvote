@@ -2,6 +2,24 @@ import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 
 export default function BarGraph({ items = [], totals = [] }) {
+
+  const setFontSize = () => {
+    if (items.length < 7) {
+      return 24
+    }
+    return 12
+  }
+
+  const setGraphHeight = () => {
+    if (items.length < 7) {
+      return 250
+    }
+    if (items.length > 15) {
+      return items.length * 30
+    }
+    return 350
+  }
+
   const graph = {
 
     series: [{
@@ -10,7 +28,7 @@ export default function BarGraph({ items = [], totals = [] }) {
     options: {
       chart: {
         type: 'bar',
-        height: 100,
+        height: setGraphHeight(),
         toolbar: {
           show: false
         }
@@ -28,7 +46,7 @@ export default function BarGraph({ items = [], totals = [] }) {
       dataLabels: {
         enabled: true,
         style: {
-          fontSize: '24px'
+          fontSize: setFontSize()
         }
       },
       xaxis: {
@@ -41,7 +59,7 @@ export default function BarGraph({ items = [], totals = [] }) {
         labels: {
           show: true,
           style: {
-            fontSize: '24px'
+            fontSize: setFontSize()
           }
         }
       }
@@ -51,7 +69,7 @@ export default function BarGraph({ items = [], totals = [] }) {
 
 
   return (<div>
-    <ReactApexChart options={graph.options} series={graph.series} type='bar' height={250} />
+    <ReactApexChart options={graph.options} series={graph.series} type='bar' height={graph.options.chart.height} />
   </div>
   )
 }
