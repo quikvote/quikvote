@@ -89,7 +89,9 @@ export function aggregateScoreVote(room: Room): Result {
     if (userVote.vote.type === VoteType.Score) {
       const vote = userVote.vote
       Object.keys(vote.scores).forEach(key => {
-        totals.set(key, (totals.get(key) ?? 0) + vote.scores[key])
+        if (room.options.includes(key)) {
+          totals.set(key, (totals.get(key) ?? 0) + vote.scores[key])
+        }
       })
     }
   });
