@@ -123,9 +123,9 @@ export default function Vote() {
 
     if (event.type == 'options') {
       const new_options = event.options
-      if (options.length && new_options.length && options.length != new_options.length) {
-        scrollToBottom()
-      }
+      // if (options.length && new_options.length && options.length != new_options.length) {
+      //   scrollToBottom()
+      // }
       setOptions(new_options)
     } else if (event.type == 'results-available') {
       setLockedIn(true)
@@ -176,6 +176,10 @@ export default function Vote() {
     WSHandler.addOption(id, opt)
   }
 
+  async function removeOption(opt) {
+    WSHandler.removeOption(id, opt);
+  }
+
   function unlockVotes() {
     WSHandler.unlockVote(id)
   }
@@ -191,7 +195,7 @@ export default function Vote() {
     if (options.length == 0) {
       return (<p>Add an option...</p>)
     }
-    return renderVote(config, options, vote, setVote, lockedIn)
+    return renderVote(config, options, vote, setVote, lockedIn, isRoomOwner, removeOption)
   }
 
   function renderRoundIndicator() {

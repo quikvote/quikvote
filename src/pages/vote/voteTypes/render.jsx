@@ -19,7 +19,7 @@ import QuadraticVote from './quadratic';
   *
   */
 
-export default function renderVote(config, options, vote, setVote, disabled) {
+export default function renderVote(config, options, vote, setVote, disabled, isRoomOwner, removeOption) {
   switch (config.type) {
     case 'score':
       return (<ScoreVote
@@ -28,6 +28,8 @@ export default function renderVote(config, options, vote, setVote, disabled) {
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
+          removeOption={removeOption}
       />)
     case 'rank':
       return (<RankVote
