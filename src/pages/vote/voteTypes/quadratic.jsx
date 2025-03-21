@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './quadratic.css';
 
-export default function QuadraticVote({ config, options, vote, setVote, disabled }) {
+export default function QuadraticVote({ config, options, vote, setVote, disabled, isRoomOwner, removeOption }) {
     // Get the credit budget from config, default to 100 if not specified
     const creditBudget = config.options?.creditBudget || 100;
 
@@ -141,6 +141,14 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
                                     <span className="material-symbols-outlined">add</span>
                                 </button>
                             </div>
+                            {isRoomOwner && !disabled &&
+                        <button
+                            className='delete__button'
+                            onClick={() => removeOption(name)}
+                        >
+                            Remove
+                        </button>
+                    }
                         </div>
                     </li>
                 );

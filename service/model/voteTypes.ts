@@ -123,7 +123,7 @@ export function aggregateApprovalVote(room: Room): Result {
 
       // Count each approval as 1 point
       Object.entries(vote.approvals).forEach(([option, approved]) => {
-        if (approved) {
+        if (room.options.includes(option) && approved) {
           totals.set(option, (totals.get(option) ?? 0) + 1)
         }
       })
@@ -157,7 +157,9 @@ export function aggregateQuadraticVote(room: Room): Result {
 
       // Sum up the votes (not the costs)
       Object.entries(vote.votes).forEach(([option, voteCount]) => {
-        totals.set(option, (totals.get(option) ?? 0) + voteCount)
+        if (room.options.includes(option)) {
+          totals.set(option, (totals.get(option) ?? 0) + voteCount)
+        }
       })
     }
   });
@@ -186,13 +188,15 @@ export function aggregateRankVote(room: Room): Result {
   userVotes.forEach(userVote => {
     if (userVote.vote.type === VoteType.Rank) {
       const vote = userVote.vote
-      const numOptions = Object.keys(vote.rankings).length
+      const numOptions = room.options.length
 
       // Properly weight the rankings (higher positions get more points)
       Object.entries(vote.rankings).forEach(([option, rank]) => {
-        // Invert the rank so first place (rank 1) gets the most points
-        const points = numOptions - rank + 1
-        totals.set(option, (totals.get(option) ?? 0) + points)
+        if (room.options.includes(option)) {
+          // Invert the rank so first place (rank 1) gets the most points
+          const points = numOptions - rank + 1
+          totals.set(option, (totals.get(option) ?? 0) + points)
+        }
       })
     }
   });
@@ -225,7 +229,7 @@ export function aggregateTopChoicesVote(room: Room): Result {
 
       // Assign weighted points based on choice position
       Object.entries(vote.topChoices).forEach(([position, option]) => {
-        if (option) {  // Only process non-null selections
+        if (option && room.options.includes(option)) {  // Only process non-null selections
           let points = 0
 
           // Higher positions get more points

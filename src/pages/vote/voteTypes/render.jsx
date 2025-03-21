@@ -38,6 +38,8 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
+          removeOption={removeOption}
       />)
     case 'topChoices':
       return (<TopChoicesVote
@@ -46,6 +48,8 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
+          removeOption={removeOption}
       />)
     case 'approval':
       return (<ApprovalVote
@@ -54,6 +58,8 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
+          removeOption={removeOption}
       />)
     case 'quadratic':
       return (<QuadraticVote
@@ -62,6 +68,8 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
+          removeOption={removeOption}
       />)
     default:
       return (<p>Error: Unknown vote type {config.type}</p>)
