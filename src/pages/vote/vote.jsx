@@ -123,9 +123,9 @@ export default function Vote() {
 
     if (event.type == 'options') {
       const new_options = event.options
-      // if (options.length && new_options.length && options.length != new_options.length) {
-      //   scrollToBottom()
-      // }
+      if (options.length && new_options.length && options.length != new_options.length) {
+        scrollToBottom()
+      }
       setOptions(new_options)
     } else if (event.type == 'results-available') {
       setLockedIn(true)
@@ -168,7 +168,7 @@ export default function Vote() {
   }
 
   function scrollToBottom() {
-    const scrollDiv = document.getElementById("vote-options-element")
+    const scrollDiv = document.getElementById("main-element")
     scrollDiv.scrollTop = scrollDiv.scrollHeight
   }
 
@@ -346,7 +346,7 @@ export default function Vote() {
         <h3>Share this QuikVote!</h3>
         <span className="material-symbols-outlined">ios_share</span>
       </header>
-      <main className="main">
+      <main className="main" id="main-element">
         {renderRoundIndicator()}
         {renderPreviousRoundResults()}
 
