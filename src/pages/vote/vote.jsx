@@ -176,10 +176,6 @@ export default function Vote() {
     WSHandler.addOption(id, opt)
   }
 
-  async function removeOption(opt) {
-    WSHandler.removeOption(id, opt);
-  }
-
   function unlockVotes() {
     WSHandler.unlockVote(id)
   }
@@ -195,7 +191,7 @@ export default function Vote() {
     if (options.length == 0) {
       return (<p>Add an option...</p>)
     }
-    return renderVote(config, options, vote, setVote, lockedIn, isRoomOwner, removeOption)
+    return renderVote(config, options, vote, setVote, lockedIn, isRoomOwner)
   }
 
   function renderRoundIndicator() {

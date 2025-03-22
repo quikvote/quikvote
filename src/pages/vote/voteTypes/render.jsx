@@ -19,7 +19,7 @@ import QuadraticVote from './quadratic';
   *
   */
 
-export default function renderVote(config, options, vote, setVote, disabled, isRoomOwner, removeOption) {
+export default function renderVote(config, options, vote, setVote, disabled, isRoomOwner) {
   switch (config.type) {
     case 'score':
       return (<ScoreVote
@@ -29,7 +29,6 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           setVote={setVote}
           disabled={disabled}
           isRoomOwner={isRoomOwner}
-          removeOption={removeOption}
       />)
     case 'rank':
       return (<RankVote
@@ -39,7 +38,6 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           setVote={setVote}
           disabled={disabled}
           isRoomOwner={isRoomOwner}
-          removeOption={removeOption}
       />)
     case 'topChoices':
       return (<TopChoicesVote
@@ -49,7 +47,6 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           setVote={setVote}
           disabled={disabled}
           isRoomOwner={isRoomOwner}
-          removeOption={removeOption}
       />)
     case 'approval':
       return (<ApprovalVote
@@ -59,7 +56,6 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           setVote={setVote}
           disabled={disabled}
           isRoomOwner={isRoomOwner}
-          removeOption={removeOption}
       />)
     case 'quadratic':
       return (<QuadraticVote
@@ -69,7 +65,6 @@ export default function renderVote(config, options, vote, setVote, disabled, isR
           setVote={setVote}
           disabled={disabled}
           isRoomOwner={isRoomOwner}
-          removeOption={removeOption}
       />)
     default:
       return (<p>Error: Unknown vote type {config.type}</p>)

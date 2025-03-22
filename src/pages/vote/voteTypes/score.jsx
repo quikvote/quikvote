@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import '../vote.css'
+import RemoveOptionButton from '../removeOptionButton';
 
-export default function ScoreVote({ config, options, vote, setVote, disabled, isRoomOwner, removeOption }) {
+export default function ScoreVote({ config, options, vote, setVote, disabled, isRoomOwner }) {
   return options.map((name, i) => (
     <ScoreVoteOption
       config={config}
@@ -17,12 +18,11 @@ export default function ScoreVote({ config, options, vote, setVote, disabled, is
         })}
       disabled={disabled}
       isRoomOwner={isRoomOwner}
-      removeOption={() => removeOption(name)}
     />
   ))
 }
 
-function ScoreVoteOption({ config, name, value, setValue, disabled, isRoomOwner, removeOption }) {
+function ScoreVoteOption({ config, name, value, setValue, disabled, isRoomOwner }) {
   useEffect(() => {
     if (value === undefined) {
       setValue(config.options.minVotesPerOption)
@@ -59,14 +59,7 @@ function ScoreVoteOption({ config, name, value, setValue, disabled, isRoomOwner,
         >
           <span className="material-symbols-outlined">arrow_upward</span>
         </button>
-        {isRoomOwner && !disabled &&
-          <button
-            className='delete__button'
-            onClick={removeOption}
-          >
-            Remove
-          </button>
-        }
+        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
       </div>
     </li>
   )
