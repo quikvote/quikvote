@@ -20,10 +20,10 @@ interface Connection {
 }
 
 interface WSEvent {
-  type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round'
+  type: 'new_option' | 'remove_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round'
 }
 
-interface NewOptionEvent extends WSEvent {
+interface OptionEvent extends WSEvent {
   room: string
   option: string
 }
@@ -108,7 +108,9 @@ class PeerProxy {
         const dataParsed = JSON.parse(dataString) as WSEvent;
         console.log(`Received ws message from ${connection.user}: ${JSON.stringify(dataParsed, undefined, 4)}`);
         if (dataParsed.type == 'new_option') {
-          this.handleNewOption(JSON.parse(dataString) as NewOptionEvent, connection, connections);
+          this.handleNewOption(JSON.parse(dataString) as OptionEvent, connection, connections);
+        } else if (dataParsed.type == 'remove_option') {
+          this.handleRemoveOption(JSON.parse(dataString) as OptionEvent, connection, connections);
         } else if (dataParsed.type == 'lock_in') {
           this.handleLockIn(JSON.parse(dataString) as LockInEvent, connection, connections);
         } else if (dataParsed.type == 'close_room') {
@@ -146,7 +148,7 @@ class PeerProxy {
     }, 10000);
   }
 
-  public async handleNewOption(event: NewOptionEvent, connection: Connection, connections: Connection[]) {
+  public async handleNewOption(event: OptionEvent, connection: Connection, connections: Connection[]) {
     const room = await this.roomDAO.getRoomById(event.room);
 
     if (!room) {
@@ -171,6 +173,49 @@ class PeerProxy {
     if (await this.roomDAO.addOptionToRoom(event.room, newOption)) {
       connections.filter(c => room.participants.includes(c.user)).forEach(c => {
         c.ws.send(JSON.stringify({ type: 'options', options: [...room.options, newOption] }));
+      });
+    }
+  }
+
+  public async handleRemoveOption(event: OptionEvent, connection: Connection, connections: Connection[]) {
+    let room = await this.roomDAO.getRoomById(event.room);
+
+    if (!room) {
+      console.warn(`no room with id ${event.room}`)
+      return
+    }
+    if (room.state !== 'open') {
+      console.warn('room is closed')
+      return
+    }
+    if (!room.participants.includes(connection.user)) {
+      console.warn(`room does not include user ${connection.user}`)
+      return
+    }
+
+    if (room.owner !== connection.user) {
+      console.warn('user is not owner of room')
+      return
+    }
+
+    const option = event.option
+    if (!room.options.map(opt => opt).includes(option)) {
+      console.warn('room does not include this option')
+      return
+    }
+
+    if (await this.roomDAO.removeOptionFromRoom(event.room, option)) {
+      // Grab the updated room
+      room = await this.roomDAO.getRoomById(event.room);
+
+      // Check if the room was deleted before the updated room was retrieved.
+      if (!room) {
+        console.warn(`no room with id ${event.room}`);
+        return;
+      }
+
+      connections.filter(c => room!.participants.includes(c.user)).forEach(c => {
+        c.ws.send(JSON.stringify({ type: 'options', options: [...room!.options] }));
       });
     }
   }

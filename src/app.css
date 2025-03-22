@@ -110,6 +110,25 @@
   background-color: #1e40af;
 }
 
+.delete__button {
+  display: block;
+  background-color: #dc2626; /* Red color for delete */
+  color: #fff;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 5px;
+  font-size: 1.1em;
+  border: none;
+  line-height: unset;
+  font-family: unset;
+  cursor: pointer;
+  transition-duration: 0.2s;
+}
+
+.delete__button:hover {
+  background-color: #b91c1c; /* Darker red on hover */
+}
+
 .home__p {
   margin-top: 20px;
   font-size: 1em;

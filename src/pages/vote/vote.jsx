@@ -168,7 +168,7 @@ export default function Vote() {
   }
 
   function scrollToBottom() {
-    const scrollDiv = document.getElementById("vote-options-element")
+    const scrollDiv = document.getElementById("main-element")
     scrollDiv.scrollTop = scrollDiv.scrollHeight
   }
 
@@ -191,7 +191,7 @@ export default function Vote() {
     if (options.length == 0) {
       return (<p>Add an option...</p>)
     }
-    return renderVote(config, options, vote, setVote, lockedIn)
+    return renderVote(config, options, vote, setVote, lockedIn, isRoomOwner)
   }
 
   function renderRoundIndicator() {
@@ -342,7 +342,7 @@ export default function Vote() {
         <h3>Share this QuikVote!</h3>
         <span className="material-symbols-outlined">ios_share</span>
       </header>
-      <main className="main">
+      <main className="main" id="main-element">
         {renderRoundIndicator()}
         {renderPreviousRoundResults()}
 

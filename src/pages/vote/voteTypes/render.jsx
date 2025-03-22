@@ -19,7 +19,7 @@ import QuadraticVote from './quadratic';
   *
   */
 
-export default function renderVote(config, options, vote, setVote, disabled) {
+export default function renderVote(config, options, vote, setVote, disabled, isRoomOwner) {
   switch (config.type) {
     case 'score':
       return (<ScoreVote
@@ -28,6 +28,7 @@ export default function renderVote(config, options, vote, setVote, disabled) {
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
       />)
     case 'rank':
       return (<RankVote
@@ -36,6 +37,7 @@ export default function renderVote(config, options, vote, setVote, disabled) {
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
       />)
     case 'topChoices':
       return (<TopChoicesVote
@@ -44,6 +46,7 @@ export default function renderVote(config, options, vote, setVote, disabled) {
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
       />)
     case 'approval':
       return (<ApprovalVote
@@ -52,6 +55,7 @@ export default function renderVote(config, options, vote, setVote, disabled) {
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
       />)
     case 'quadratic':
       return (<QuadraticVote
@@ -60,6 +64,7 @@ export default function renderVote(config, options, vote, setVote, disabled) {
           vote={vote}
           setVote={setVote}
           disabled={disabled}
+          isRoomOwner={isRoomOwner}
       />)
     default:
       return (<p>Error: Unknown vote type {config.type}</p>)

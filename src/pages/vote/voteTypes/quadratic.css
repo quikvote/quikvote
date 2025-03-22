@@ -122,3 +122,7 @@
 .cost-table tr:nth-child(even) {
     background-color: #f8f9fa;
 }
+
+.delete__button {
+    margin-left: 10px;
+}
