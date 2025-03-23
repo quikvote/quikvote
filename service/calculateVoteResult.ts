@@ -20,7 +20,8 @@ const sortOptions = (totals: UserVoteResult, numRunnerUpsToDisplay: number) => {
     const sortedOptions = sorted.map(([key]) => key);
     const sortedTotals = sorted.map(([, value]) => value.totals);
     const sortedUsers = sorted.map(([, value]) => value.users);
-    return {sortedOptions,  sortedTotals, sortedUsers}
+    const sortedUsersVotes = sorted.map(([, value]) => value.users_vote);
+    return {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes}
 }
 
 const calculateVoteResultWithUsers = (userVotes: UserVote[]): UserVoteResult => {
@@ -28,11 +29,11 @@ const calculateVoteResultWithUsers = (userVotes: UserVote[]): UserVoteResult => 
     userVotes.forEach(userVote => {
         Object.keys(userVote.votes).forEach(key => {
             if (!results.has(key)) {
-                results.set(key, {totals: 0, users: []})
+                results.set(key, {totals: 0, users: [], users_vote: []})
             }
             const currEntry = results.get(key)!
             currEntry.totals += userVote.votes[key]
-            if (userVote.votes[key] > 0) { currEntry.users.push(userVote.username) }
+            if (userVote.votes[key] > 0) { currEntry.users.push(userVote.username); currEntry.users_vote.push(userVote.votes[key]) }
         })
     });
 

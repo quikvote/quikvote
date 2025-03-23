@@ -206,8 +206,8 @@ async function main() {
 
     await roomDAO.closeRoom(roomId);
 
-    const { sortedOptions, sortedTotals, sortedUsers } = calculateVoteResult(room.votes, room.numRunnerUpsToDisplay);
-    const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals, (room.useAnonymousVoting ? [] : sortedUsers));
+    const { sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes } = calculateVoteResult(room.votes, room.numRunnerUpsToDisplay);
+    const result = await historyDAO.createResult(user!.username, sortedOptions, sortedTotals, (room.useAnonymousVoting ? [] : sortedUsers), (room.useAnonymousVoting ? [] : sortedUsersVotes));
 
     res.status(200).send({ resultsId: result._id })
   })
@@ -221,7 +221,7 @@ async function main() {
       return
     }
 
-    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals, users: result.sortedUsers })
+    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals, users: result.sortedUsers, usersVotes: result.sortedUsersVotes})
   })
 
   secureApiRouter.get('/history', async (req: Request, res: Response) => {

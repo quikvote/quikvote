@@ -17,6 +17,7 @@ export type UserVoteResult = Map<string, ItemResult>
 export interface ItemResult {
   totals: number
   users: string[]
+  users_vote: number[]
 }
 
 export interface Room {
@@ -50,5 +51,6 @@ export interface Result {
   sortedOptions: string[]
   sortedTotals: number[]
   sortedUsers: string[][]
+  sortedUsersVotes: number[][]
   timestamp: number
 }
