@@ -10,6 +10,7 @@ export default function Results() {
   const [items, setItems] = useState([])
   const [totals, setTotals] = useState([])
   const [users, setUsers] = useState([])
+  const [usersVotes, setUsersVotes] = useState([])
   const { id: resultsId } = useParams()
   useEffect(() => {
     const fetchItems = async () => {
@@ -28,6 +29,10 @@ export default function Results() {
         setUsers(body.users);
         console.log("Sorted list of Users who voted for each option:\n", body.users);
       }
+      if (body.usersVotes) {
+        setUsersVotes(body.usersVotes);
+        console.log("Sorted list of each Users' vote totals for each option:\n", body.usersVotes);
+      }
     }
 
     fetchItems().catch(console.error)
@@ -39,7 +44,7 @@ export default function Results() {
       </header>
       <main className="main">
         <h2>{items[0] ?? ''} wins!</h2>
-        <BarGraph items={items} totals={totals} />
+        <BarGraph items={items} totals={totals} users={users} usersVotes={usersVotes} />
         <NavLink className="main__button" to="/">Home</NavLink>
       </main>
     </>

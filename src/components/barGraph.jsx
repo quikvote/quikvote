@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 
-export default function BarGraph({ items = [], totals = [] }) {
+export default function BarGraph({ items = [], totals = [], users = [], usersVotes = [] }) {
   const graph = {
 
     series: [{
