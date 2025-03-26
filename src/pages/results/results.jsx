@@ -42,6 +42,7 @@ export default function Results() {
       /*
       This is an array of an array of numbers. The outer array corresponds to the options, sorted in the same order as the options array from the same body.
       Each inner array is the number of votes, or the ranking given to each option by each user. The order of these numbers is the same as the users double array
+        *When it is a rank or top choices vote, the number is the rank, not the calculate points. So if a user specified an option as their 1st choice, it have the value of '1'
       This list will be empty if the voting method is incompatible (approval voting, since it's always 1), or if either showWhoVoted or Totals is false
       */
       if (body.usersVotes) {
