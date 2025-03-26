@@ -92,16 +92,6 @@ export function aggregateScoreVote(room: Room): Result {
     throw new Error('Vote type must be "score"')
   }
 
-  // const totals: Map<string, number> = new Map()
-  // userVotes.forEach(userVote => {
-  //   if (userVote.vote.type === VoteType.Score) {
-  //     const vote = userVote.vote
-  //     Object.keys(vote.scores).forEach(key => {
-  //       totals.set(key, (totals.get(key) ?? 0) + vote.scores[key])
-  //     })
-  //   }
-  // });
-
   const totals: UserVoteResult = new Map<string, ItemResult>()
     userVotes.forEach(userVote => {
       if (userVote.vote.type === VoteType.Score) {
@@ -119,11 +109,7 @@ export function aggregateScoreVote(room: Room): Result {
     }});
 
     //Slice the results array to only be the length of the number of runner ups.
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1].totals - a[1].totals)
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score.totals)
-  const sortedUsers = sorted.map(([_, users]) => users.users)
-  const sortedUsersVotes = sorted.map(([_, votes]) => votes.users_vote)
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
@@ -162,11 +148,8 @@ export function aggregateApprovalVote(room: Room): Result {
     }
   });
 
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1].totals - a[1].totals)
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score.totals)
-  const sortedUsers = sorted.map(([_, users]) => users.users)
-  //Since everyone just votes once, not needed field
+  const {sortedOptions, sortedTotals, sortedUsers} = sortAndSplitResults(totals, room);
+  //Since everyone just votes once, sortedUsersVotes not needed, set to empty array
   const sortedUsersVotes: number[][] = []
 
   return {
@@ -203,11 +186,7 @@ export function aggregateQuadraticVote(room: Room): Result {
     }});
 
     //Slice the results array to only be the length of the number of runner ups.
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1].totals - a[1].totals)
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score.totals)
-  const sortedUsers = sorted.map(([_, users]) => users.users)
-  const sortedUsersVotes = sorted.map(([_, votes]) => votes.users_vote)
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
@@ -250,11 +229,7 @@ export function aggregateRankVote(room: Room): Result {
     }
   });
 
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1].totals - a[1].totals)
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score.totals)
-  const sortedUsers = sorted.map(([_, users]) => users.users)
-  const sortedUsersVotes = sorted.map(([_, votes]) => votes.users_vote)
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
@@ -320,11 +295,7 @@ export function aggregateTopChoicesVote(room: Room): Result {
     }
   });
 
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1].totals - a[1].totals)
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score.totals)
-  const sortedUsers = sorted.map(([_, users]) => users.users)
-  const sortedUsersVotes = sorted.map(([_, votes]) => votes.users_vote)
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
@@ -334,4 +305,16 @@ export function aggregateTopChoicesVote(room: Room): Result {
     owner: room.owner,
     timestamp: Date.now(),
   }
+}
+
+//Splits up and sorts the options, totals, users, and user's votes by ranked order. If the room options specify who voted and the totals, then those values are included in the results.
+//Totals field is not removed here as that would mess with the rounds system, but the rounds logic doesn't rely on who voted for what, so that does not need to be present in the results.
+function sortAndSplitResults(totals: UserVoteResult, room: Room) {
+  const sorted = Array.from(totals.entries()).sort((a, b) => b[1].totals - a[1].totals)
+  const sortedOptions = sorted.map(([option, _]) => option)
+  const sortedTotals = sorted.map(([_, score]) => score.totals)
+  const sortedUsers = (room.config.options.showWhoVoted ? sorted.map(([_, users]) => users.users) : [])
+  const sortedUsersVotes = (room.config.options.showNumVotes && room.config.options.showWhoVoted ? sorted.map(([_, votes]) => votes.users_vote) : [])
+
+  return {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes};
 }
