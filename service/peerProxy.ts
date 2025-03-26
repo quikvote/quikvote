@@ -400,7 +400,7 @@ class PeerProxy {
 
     const aggregator = aggregationMap[room.config.type]
     const result = aggregator(room)
-    return await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals);
+    return await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals, result.sortedUsers, result.sortedUsersVotes);
   }
 }
 
