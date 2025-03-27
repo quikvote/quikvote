@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import './approval.css';
+import RemoveOptionButton from '../removeOptionButton';
 
-export default function ApprovalVote({ options, vote, setVote, disabled }) {
+export default function ApprovalVote({ options, vote, setVote, disabled, isRoomOwner }) {
     // Initialize from existing vote if it exists
     useEffect(() => {
         if (!vote.approvals) {
@@ -44,6 +45,7 @@ export default function ApprovalVote({ options, vote, setVote, disabled }) {
                         )}
                     </div>
                     <span className="option-name">{name}</span>
+                    <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
                 </li>
             ))}
 

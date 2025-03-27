@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import '../vote.css';
+import RemoveOptionButton from '../removeOptionButton';
 
-export default function RankVote({ options, vote, setVote, disabled }) {
+export default function RankVote({ options, vote, setVote, disabled, isRoomOwner }) {
     const [draggedItem, setDraggedItem] = useState(null);
     const [rankedItems, setRankedItems] = useState([]);
 
@@ -100,6 +101,7 @@ export default function RankVote({ options, vote, setVote, disabled }) {
                     {!disabled && (
                         <span className="material-symbols-outlined drag-handle">drag_indicator</span>
                     )}
+                    <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
                 </li>
             ))}
             <div className="rank-instructions">
