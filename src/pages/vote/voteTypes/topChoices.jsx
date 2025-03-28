@@ -63,7 +63,7 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
     useEffect(() => {
         if (selections) {
             const filteredSelections = Object.fromEntries(
-                Object.entries(selections).filter(([key, value]) => options.includes(value))
+                Object.entries(selections).filter(([_, value]) => options.includes(value))
             );
             setSelections(filteredSelections);
         }
