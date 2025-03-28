@@ -26,6 +26,7 @@ export interface BaseModOptions { // options that apply to all vote types (eg. r
   numRunnerUps: number
   showNumVotes: boolean
   showWhoVoted: boolean
+  allowNewOptions: boolean
 
   // Multi-round voting options
   enableRound?: boolean        // Whether to enable multi-round voting

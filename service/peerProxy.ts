@@ -163,6 +163,10 @@ class PeerProxy {
       console.warn(`room does not include user ${connection.user}`)
       return
     }
+    if (!room.config.options.allowNewOptions && room.owner !== connection.user) {
+      console.warn(`user is not room owner`);
+      return
+    }
 
     const newOption = event.option
     if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
