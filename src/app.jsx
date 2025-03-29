@@ -28,10 +28,6 @@ export default function App() {
             <Route path='/*' element={<NotFound />} />
           </Routes>
         </UserContextProvider>
-        <footer className="footer">
-          <span className="text-reset">Josh Hendershot</span>
-          <a className="footer__link" href="https://github.com/henderj/startup">Github</a>
-        </footer>
       </BrowserRouter>
     </>
   )
