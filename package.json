@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@esbuild/darwin-arm64": "^0.25.0",
+    "@hello-pangea/dnd": "^18.0.1",
     "@rollup/rollup-darwin-arm64": "^4.34.9",
     "dayjs": "^1.11.13",
     "js-cookie": "^3.0.5",
