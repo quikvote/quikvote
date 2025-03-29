@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './topChoices.css';
+import RemoveOptionButton from '../removeOptionButton';
 
-export default function TopChoicesVote({ config, options, vote, setVote, disabled }) {
+export default function TopChoicesVote({ config, options, vote, setVote, disabled, isRoomOwner }) {
     // Get the number of choices from config, default to 3 if not specified
     const numberOfChoices = config.options?.numberOfChoices || 3;
 
@@ -148,6 +149,7 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         )}
+                        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
                     </div>
                 </li>
             ))}

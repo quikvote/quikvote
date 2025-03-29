@@ -169,6 +169,7 @@ export function aggregateQuadraticVote(room: Room): Result {
     throw new Error('Vote type must be "quadratic"')
   }
 
+
   const totals: UserVoteResult = new Map<string, ItemResult>()
     userVotes.forEach(userVote => {
       if (userVote.vote.type === VoteType.Quadratic) {
@@ -210,7 +211,7 @@ export function aggregateRankVote(room: Room): Result {
   userVotes.forEach(userVote => {
     if (userVote.vote.type === VoteType.Rank) {
       const vote = userVote.vote
-      const numOptions = Object.keys(vote.rankings).length
+      const numOptions = room.options.length
 
       // Properly weight the rankings (higher positions get more points)
       Object.entries(vote.rankings).forEach(([option, rank]) => {
@@ -257,7 +258,7 @@ export function aggregateTopChoicesVote(room: Room): Result {
 
       // Assign weighted points based on choice position
       Object.entries(vote.topChoices).forEach(([position, option]) => {
-        if (option) {  // Only process non-null selections
+        if (option && room.options.includes(option)) {  // Only process non-null selections
           let points = 0
 
           // Higher positions get more points
