@@ -197,7 +197,7 @@ async function main() {
       return
     }
 
-    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals })
+    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals, users: result.sortedUsers, usersVotes: result.sortedUsersVotes})
   })
 
   secureApiRouter.get('/history', async (req: Request, res: Response) => {
