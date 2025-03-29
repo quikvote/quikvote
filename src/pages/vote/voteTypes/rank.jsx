@@ -1,34 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import '../vote.css';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import './rank.css';
 import RemoveOptionButton from '../removeOptionButton';
 
 export default function RankVote({ options, vote, setVote, disabled, isRoomOwner }) {
-    const [draggedItem, setDraggedItem] = useState(null);
     const [rankedItems, setRankedItems] = useState([]);
 
-    // Initialize the ranked items when options change or on first load
+    // Initialize ranked items from options or existing rankings
     useEffect(() => {
         if (options.length > 0) {
-            // If we have existing rankings, use them
             if (vote.rankings && Object.keys(vote.rankings).length > 0) {
-                // Sort options based on existing rankings
                 const sortedOptions = [...options].sort((a, b) => {
                     return (vote.rankings[a] || Number.MAX_VALUE) - (vote.rankings[b] || Number.MAX_VALUE);
                 });
                 setRankedItems(sortedOptions);
             } else {
-                // Otherwise use the options as they come
                 setRankedItems([...options]);
-
-                // Initialize rankings object with default values (position in array)
                 const initialRankings = {};
                 options.forEach((name, index) => {
                     initialRankings[name] = index + 1;
                 });
-
-                setVote({
-                    rankings: initialRankings
-                });
+                setVote({ rankings: initialRankings });
             }
         }
     }, [options]);
@@ -40,42 +32,17 @@ export default function RankVote({ options, vote, setVote, disabled, isRoomOwner
             rankedItems.forEach((name, index) => {
                 newRankings[name] = index + 1;
             });
-
-            setVote({
-                rankings: newRankings
-            });
+            setVote({ rankings: newRankings });
         }
     }, [rankedItems]);
 
-    const handleDragStart = (e, index) => {
-        if (disabled) return;
-        setDraggedItem(index);
-        // For better drag appearance
-        e.dataTransfer.effectAllowed = "move";
-        // This makes the drag image transparent in most browsers
-        setTimeout(() => {
-            e.target.style.opacity = '0.5';
-        }, 0);
-    };
-
-    const handleDragEnd = (e) => {
-        if (disabled) return;
-        e.target.style.opacity = '1';
-        setDraggedItem(null);
-    };
-
-    const handleDragOver = (e, index) => {
-        e.preventDefault();
-        if (disabled) return;
-        if (draggedItem === null) return;
-        if (draggedItem === index) return;
+    // Handle drag end event
+    const onDragEnd = (result) => {
+        if (disabled || !result.destination) return; // Exit if dropped outside or disabled
 
         const newRankedItems = [...rankedItems];
-        const item = newRankedItems[draggedItem];
-        newRankedItems.splice(draggedItem, 1);
-        newRankedItems.splice(index, 0, item);
-
-        setDraggedItem(index);
+        const [movedItem] = newRankedItems.splice(result.source.index, 1);
+        newRankedItems.splice(result.destination.index, 0, movedItem);
         setRankedItems(newRankedItems);
     };
 
@@ -84,32 +51,57 @@ export default function RankVote({ options, vote, setVote, disabled, isRoomOwner
     }
 
     return (
-        <>
-            {rankedItems.map((name, index) => (
-                <li
-                    key={index}
-                    className={`vote-options__item vote-options__item--draggable ${disabled ? 'vote-options__item--disabled' : ''} ${draggedItem === index ? 'vote-options__item--dragging' : ''}`}
-                    draggable={!disabled}
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                >
-                    <div className="rank-display">
-                        <span className="rank-number">{index + 1}</span>
-                    </div>
-                    <div className="rank-item-name">{name}</div>
-                    {!disabled && (
-                        <span className="material-symbols-outlined drag-handle">drag_indicator</span>
-                    )}
-                    <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
-                </li>
-            ))}
+        <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="ranked-list">
+                {(provided) => (
+                    <ul
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="vote-options"
+                    >
+                        {rankedItems.map((name, index) => (
+                            <Draggable
+                                key={name} // Use name as key since it’s unique
+                                draggableId={name}
+                                index={index}
+                                isDragDisabled={disabled}
+                            >
+                                {(provided, snapshot) => (
+                                    <li
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        className={`vote-options__item vote-options__item--draggable ${disabled ? 'vote-options__item--disabled' : ''
+                                            } ${snapshot.isDragging ? 'vote-options__item--dragging' : ''}`}
+                                    >
+                                        {!disabled && (
+                                            <span {...provided.dragHandleProps} className="material-symbols-outlined drag-handle">
+                                                drag_indicator
+                                            </span>
+                                        )}
+                                        <div className="rank-display">
+                                            <span className="rank-number">{index + 1}</span>
+                                        </div>
+                                        <div className="rank-item-name">{name}</div>
+                                        <RemoveOptionButton
+                                            isRoomOwner={isRoomOwner}
+                                            disabled={disabled}
+                                            option={name}
+                                        />
+                                    </li>
+                                )}
+                            </Draggable>
+                        ))}
+                        {provided.placeholder}
+                    </ul>
+                )}
+            </Droppable>
             <div className="rank-instructions">
-                {disabled ?
-                    <p>Your rankings are locked in.</p> :
+                {disabled ? (
+                    <p>Your rankings are locked in.</p>
+                ) : (
                     <p>Drag items to rank them - top item is your first choice.</p>
-                }
+                )}
             </div>
-        </>
+        </DragDropContext>
     );
 }
