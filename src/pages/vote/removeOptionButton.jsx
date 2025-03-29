@@ -16,7 +16,7 @@ export default function RemoveOptionButton({ isRoomOwner, disabled, option }) {
           className='delete__button'
           onClick={() => removeOption()}
         >
-          Remove
+          <span className="material-symbols-outlined">delete</span>
         </button>
       }
     </>
