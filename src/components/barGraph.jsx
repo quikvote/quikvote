@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 
-export default function BarGraph({ items = [], totals = [] }) {
+export default function BarGraph({ items = [], totals = [], users = [], usersVotes = [] }) {
 
   const setFontSize = () => {
     if (items.length < 7) {
@@ -34,7 +34,34 @@ export default function BarGraph({ items = [], totals = [] }) {
         }
       },
       tooltip: {
-        enabled: false
+        enabled: true,
+        custom: function({ seriesIndex, dataPointIndex }) {
+          let content = '<div class="tooltip-box">';
+          
+          // Add title of the option
+          content += `<div class="tooltip-title">${items[dataPointIndex]}</div>`;
+          
+          // Show voters if available
+          if (users.length > 0 && users[dataPointIndex]) {
+            content += '<div class="tooltip-voters">';
+            content += '<span class="tooltip-subtitle">Voters:</span>';
+            
+            users[dataPointIndex].forEach((user, idx) => {
+              let voteValue = '';
+              if (usersVotes.length > 0 && usersVotes[dataPointIndex] && usersVotes[dataPointIndex][idx] !== undefined) {
+                voteValue = ` (${usersVotes[dataPointIndex][idx]})`;
+              }
+              content += `<div class="tooltip-user">${user}${voteValue}</div>`;
+            });
+            
+            content += '</div>';
+          } else {
+            content += '<div class="tooltip-no-data">No voter data available</div>';
+          }
+          
+          content += '</div>';
+          return content;
+        }
       },
       plotOptions: {
         bar: {

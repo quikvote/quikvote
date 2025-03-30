@@ -60,7 +60,7 @@ export default function Results() {
       </header>
       <main className="main">
         <h2>{items[0] ?? ''} wins!</h2>
-        <BarGraph items={items} totals={totals} />
+        <BarGraph items={items} totals={totals} users={users} usersVotes={usersVotes} />
         <NavLink className="main__button" to="/">Home</NavLink>
       </main>
     </>
