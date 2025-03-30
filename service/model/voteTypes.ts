@@ -12,6 +12,14 @@ import { Result, Room } from ".";
   *
   */
 
+export type UserVoteResult = Map<string, ItemResult>
+
+export interface ItemResult {
+  totals: number
+  users: string[]
+  users_vote: number[]
+}
+
 export enum VoteType {
   Score = 'score',
   Rank = 'rank',
@@ -84,25 +92,30 @@ export function aggregateScoreVote(room: Room): Result {
     throw new Error('Vote type must be "score"')
   }
 
-  const totals: Map<string, number> = new Map()
-  userVotes.forEach(userVote => {
-    if (userVote.vote.type === VoteType.Score) {
-      const vote = userVote.vote
-      Object.keys(vote.scores).forEach(key => {
-        if (room.options.includes(key)) {
-          totals.set(key, (totals.get(key) ?? 0) + vote.scores[key])
-        }
-      })
-    }
-  });
+  const totals: UserVoteResult = new Map<string, ItemResult>()
+    userVotes.forEach(userVote => {
+      if (userVote.vote.type === VoteType.Score) {
+        const vote = userVote.vote
+        Object.keys(vote.scores).forEach(key => {
+          // Add default value if it doesn't exist yet.
+            if (!totals.has(key)) {
+              totals.set(key, {totals: 0, users: [], users_vote: []})
+            }
+            const currEntry = totals.get(key)!
+            currEntry.totals += vote.scores[key]
+            // If the user's score is above 0, only then add their name and score to the option.
+            if (vote.scores[key] > 0) { currEntry.users.push(userVote.username); currEntry.users_vote.push(vote.scores[key]) }
+        })
+    }});
 
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1] - a[1])
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score)
+    //Slice the results array to only be the length of the number of runner ups.
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
     sortedTotals,
+    sortedUsers,
+    sortedUsersVotes,
     owner: room.owner,
     timestamp: Date.now(),
   }
@@ -115,7 +128,7 @@ export function aggregateApprovalVote(room: Room): Result {
     throw new Error('Vote type must be "approval"')
   }
 
-  const totals: Map<string, number> = new Map()
+  const totals: UserVoteResult = new Map<string, ItemResult>()
 
   userVotes.forEach(userVote => {
     if (userVote.vote.type === VoteType.Approval) {
@@ -123,20 +136,27 @@ export function aggregateApprovalVote(room: Room): Result {
 
       // Count each approval as 1 point
       Object.entries(vote.approvals).forEach(([option, approved]) => {
-        if (room.options.includes(option) && approved) {
-          totals.set(option, (totals.get(option) ?? 0) + 1)
+        if (!totals.has(option)) {
+          totals.set(option, {totals: 0, users: [], users_vote: []})
+        }
+        if (approved) {
+          const currEntry = totals.get(option)!
+          currEntry.totals += 1;
+          currEntry.users.push(userVote.username)
         }
       })
     }
   });
 
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1] - a[1])
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score)
+  const {sortedOptions, sortedTotals, sortedUsers} = sortAndSplitResults(totals, room);
+  //Since everyone just votes once, sortedUsersVotes not needed, set to empty array
+  const sortedUsersVotes: number[][] = []
 
   return {
     sortedOptions,
     sortedTotals,
+    sortedUsers,
+    sortedUsersVotes,
     owner: room.owner,
     timestamp: Date.now(),
   }
@@ -149,28 +169,31 @@ export function aggregateQuadraticVote(room: Room): Result {
     throw new Error('Vote type must be "quadratic"')
   }
 
-  const totals: Map<string, number> = new Map()
 
-  userVotes.forEach(userVote => {
-    if (userVote.vote.type === VoteType.Quadratic) {
-      const vote = userVote.vote
+  const totals: UserVoteResult = new Map<string, ItemResult>()
+    userVotes.forEach(userVote => {
+      if (userVote.vote.type === VoteType.Quadratic) {
+        const vote = userVote.vote
+        Object.entries(vote.votes).forEach(([option, voteCount]) => {
+          // Add default value if it doesn't exist yet.
+            if (!totals.has(option)) {
+              totals.set(option, {totals: 0, users: [], users_vote: []})
+            }
+            const currEntry = totals.get(option)!
+            currEntry.totals += voteCount
+            // If the user's vote count is above 0, only then add their name and score to the option.
+            if (voteCount > 0) { currEntry.users.push(userVote.username); currEntry.users_vote.push(voteCount) }
+        })
+    }});
 
-      // Sum up the votes (not the costs)
-      Object.entries(vote.votes).forEach(([option, voteCount]) => {
-        if (room.options.includes(option)) {
-          totals.set(option, (totals.get(option) ?? 0) + voteCount)
-        }
-      })
-    }
-  });
-
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1] - a[1])
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score)
+    //Slice the results array to only be the length of the number of runner ups.
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
     sortedTotals,
+    sortedUsers,
+    sortedUsersVotes,
     owner: room.owner,
     timestamp: Date.now(),
   }
@@ -183,7 +206,7 @@ export function aggregateRankVote(room: Room): Result {
     throw new Error('Vote type must be "rank"')
   }
 
-  const totals: Map<string, number> = new Map()
+  const totals: UserVoteResult = new Map<string, ItemResult>()
 
   userVotes.forEach(userVote => {
     if (userVote.vote.type === VoteType.Rank) {
@@ -192,22 +215,28 @@ export function aggregateRankVote(room: Room): Result {
 
       // Properly weight the rankings (higher positions get more points)
       Object.entries(vote.rankings).forEach(([option, rank]) => {
-        if (room.options.includes(option)) {
-          // Invert the rank so first place (rank 1) gets the most points
-          const points = numOptions - rank + 1
-          totals.set(option, (totals.get(option) ?? 0) + points)
+        // Invert the rank so first place (rank 1) gets the most points
+        const points = numOptions - rank + 1
+        if (!totals.has(option)) {
+          totals.set(option, {totals: 0, users: [], users_vote: []})
         }
+        const currEntry = totals.get(option)!
+        //Store the points from the inverted rank in totals
+        currEntry.totals += points
+        currEntry.users.push(userVote.username); 
+        //Push the rank in the users votes field.
+        currEntry.users_vote.push(rank)
       })
     }
   });
 
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1] - a[1])
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score)
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
     sortedTotals,
+    sortedUsers,
+    sortedUsersVotes,
     owner: room.owner,
     timestamp: Date.now(),
   }
@@ -220,7 +249,7 @@ export function aggregateTopChoicesVote(room: Room): Result {
     throw new Error('Vote type must be "topChoices"')
   }
 
-  const totals: Map<string, number> = new Map()
+  const totals: UserVoteResult = new Map<string, ItemResult>()
 
   userVotes.forEach(userVote => {
     if (userVote.vote.type === VoteType.TopChoices) {
@@ -253,20 +282,40 @@ export function aggregateTopChoicesVote(room: Room): Result {
               break;
           }
 
-          totals.set(option, (totals.get(option) ?? 0) + points)
+          if (!totals.has(option)) {
+            totals.set(option, {totals: 0, users: [], users_vote: []})
+          }
+            const currEntry = totals.get(option)!
+            currEntry.totals += points;
+            currEntry.users.push(userVote.username)
+            //For the users vote, push the number of choices minus the points plus one, so it's an ordinal number ranking.
+            currEntry.users_vote.push(numberOfChoices - points + 1)
+
         }
       })
     }
   });
 
-  const sorted = Array.from(totals.entries()).sort((a, b) => b[1] - a[1])
-  const sortedOptions = sorted.map(([option, _]) => option)
-  const sortedTotals = sorted.map(([_, score]) => score)
+  const {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes} = sortAndSplitResults(totals, room);
 
   return {
     sortedOptions,
     sortedTotals,
+    sortedUsers,
+    sortedUsersVotes,
     owner: room.owner,
     timestamp: Date.now(),
   }
+}
+
+//Splits up and sorts the options, totals, users, and user's votes by ranked order. If the room options specify who voted and the totals, then those values are included in the results.
+//Totals field is not removed here as that would mess with the rounds system, but the rounds logic doesn't rely on who voted for what, so that does not need to be present in the results.
+function sortAndSplitResults(totals: UserVoteResult, room: Room) {
+  const sorted = Array.from(totals.entries()).sort((a, b) => b[1].totals - a[1].totals)
+  const sortedOptions = sorted.map(([option, _]) => option)
+  const sortedTotals = sorted.map(([_, score]) => score.totals)
+  const sortedUsers = (room.config.options.showWhoVoted ? sorted.map(([_, users]) => users.users) : [])
+  const sortedUsersVotes = (room.config.options.showNumVotes && room.config.options.showWhoVoted ? sorted.map(([_, votes]) => votes.users_vote) : [])
+
+  return {sortedOptions, sortedTotals, sortedUsers, sortedUsersVotes};
 }
