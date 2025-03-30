@@ -1,57 +1,57 @@
 /* Rank Vote Styles */
 .vote-options__item--draggable {
-    display: flex;
-    align-items: center;
-    cursor: grab;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    background-color: #f8f9fa;
-    margin-bottom: 8px;
-    padding: 12px 15px;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	display: flex;
+	align-items: center;
+	cursor: grab;
+	background-color: #f8f9fa;
+	margin-bottom: 8px;
+	padding: 12px 15px;
+	border-radius: 6px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .vote-options__item--draggable:hover:not(.vote-options__item--disabled) {
-    background-color: #e9ecef;
+	background-color: #e9ecef;
 }
 
 .vote-options__item--dragging {
-    opacity: 0.5;
-    transform: scale(1.02);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	opacity: 0.5;
+	transform: scale(1.02);
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .vote-options__item--disabled {
-    opacity: 0.8;
-    cursor: default;
+	opacity: 0.8;
+	cursor: default;
 }
 
 .rank-display {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    background-color: #007bff;
-    color: white;
-    border-radius: 50%;
-    margin-right: 15px;
-    font-weight: bold;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	background-color: #007bff;
+	color: white;
+	border-radius: 50%;
+	margin-right: 15px;
+	margin-left: 15px;
+	font-weight: bold;
 }
 
 .rank-item-name {
-    flex-grow: 1;
-    font-size: 16px;
+	flex-grow: 1;
+	font-size: 16px;
 }
 
 .drag-handle {
-    color: #6c757d;
-    cursor: grab;
+	color: #6c757d;
+	cursor: grab;
 }
 
 .rank-instructions {
-    margin-top: 15px;
-    text-align: center;
-    color: #6c757d;
-    font-size: 14px;
+	margin-top: 15px;
+	text-align: center;
+	color: #6c757d;
+	font-size: 14px;
 }
