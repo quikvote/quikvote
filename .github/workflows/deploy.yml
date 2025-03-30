@@ -28,10 +28,10 @@ jobs:
         cache: 'npm'
     
     - name: Install frontend dependencies
-      run: npm install --omit=optional --no-fund --force
+      run: npm install --no-optional --no-fund --force
     
     - name: Install backend dependencies
-      run: npm install --prefix ./service --omit=optional
+      run: npm ci --prefix ./service
     
     - name: Build distribution package
       run: |
@@ -68,7 +68,7 @@ jobs:
         cd services/${SERVICE_NAME}
         npm install
         pm2 restart ${SERVICE_NAME}
-        EOF
+EOF
         
         # Cleanup
         rm -rf build
