@@ -310,6 +310,17 @@ export default function New() {
                   Show Who Voted
                 </label>
               </div>
+
+              <div className="checkbox-row">
+                <label>
+                  <input
+                      type="checkbox"
+                      checked={config.options.allowNewOptions}
+                      onChange={(e) => handleCommonOptionChange('allowNewOptions', e.target.checked)}
+                  />
+                  Allow Room Participants to Add Options
+                </label>
+              </div>
             </div>
 
             <div className="option-group">

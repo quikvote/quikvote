@@ -349,7 +349,9 @@ export default function Vote() {
         <ul className="vote-options">
           {renderOptions()}
         </ul>
-        <AddOption onSubmit={addOption} disabled={lockedIn || waitingForNextRound} />
+        {config.options && (config.options.allowNewOptions || isRoomOwner) &&
+          (<AddOption onSubmit={addOption} disabled={lockedIn || waitingForNextRound} />)
+        }
         {renderButton()}
       </main>
       <ShareModal
