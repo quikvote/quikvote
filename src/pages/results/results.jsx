@@ -36,7 +36,7 @@ export default function Results() {
       */
       if (body.users) {
         setUsers(body.users);
-        console.log("Sorted list of Users who voted for each option:\n", body.users);
+        console.log("Sorted list of Users who voted for each option:\n", users);
       }
 
       /*
@@ -47,7 +47,7 @@ export default function Results() {
       */
       if (body.usersVotes) {
         setUsersVotes(body.usersVotes);
-        console.log("Sorted list of each Users' vote totals for each option:\n", body.usersVotes);
+        console.log("Sorted list of each Users' vote totals for each option:\n", usersVotes);
       }
     }
 
