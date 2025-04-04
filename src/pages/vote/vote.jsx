@@ -81,6 +81,11 @@ export default function Vote() {
         setConfig(body.config)
         setOptions(body.options)
         setIsRoomOwner(body.isOwner)
+        setLockedIn(body.lockedIn)
+        if (body.currentVote) {
+          setVote(body.currentVote)
+        }
+        setResultsId(body.resultId)
 
         // Initialize round state
         if (body.config?.options?.enableRound) {
