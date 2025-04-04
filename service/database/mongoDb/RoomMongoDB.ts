@@ -18,6 +18,7 @@ class RoomMongoDB implements RoomDAO {
       options: [],
       votes: [],
       state: 'open',
+      resultId: '',
       config
     }
 
@@ -45,74 +46,75 @@ class RoomMongoDB implements RoomDAO {
 
   public async addParticipantToRoom(roomCode: string, username: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-        { code: roomCode, state: 'open' },
-        {
-          $addToSet: {
-            participants: username
-          }
+      { code: roomCode, state: 'open' },
+      {
+        $addToSet: {
+          participants: username
         }
+      }
     )
     return result.acknowledged && result.matchedCount === 1
   }
 
   public async addOptionToRoom(roomId: string, option: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-        { _id: new ObjectId(roomId), state: 'open' },
-        {
-          $addToSet: {
-            options: option
-          }
+      { _id: new ObjectId(roomId), state: 'open' },
+      {
+        $addToSet: {
+          options: option
         }
+      }
     )
     return result.acknowledged && result.matchedCount === 1
   }
 
   public async removeOptionFromRoom(roomId: string, option: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-        { _id: new ObjectId(roomId) },
-        {
-            $pull: { options: option }
-        }
+      { _id: new ObjectId(roomId) },
+      {
+        $pull: { options: option }
+      }
     )
     return result.acknowledged && result.matchedCount === 1;
   }
 
   public async submitUserVotes(roomId: string, username: string, vote: Vote): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-        { _id: new ObjectId(roomId), "votes.username": { $ne: username } },
-        {
-          $push: {
-            votes: {
-              username,
-              vote
-            }
+      { _id: new ObjectId(roomId), "votes.username": { $ne: username } },
+      {
+        $push: {
+          votes: {
+            username,
+            vote
           }
         }
+      }
     )
     return result.acknowledged && result.matchedCount === 1
   }
 
   public async removeUserVotes(roomId: string, username: string): Promise<void> {
     await this.roomsCollection.updateOne(
-        { _id: new ObjectId(roomId) },
-        {
-          $pull: {
-            votes: {
-              username
-            }
+      { _id: new ObjectId(roomId) },
+      {
+        $pull: {
+          votes: {
+            username
           }
         }
+      }
     )
   }
 
-  public async closeRoom(roomId: string): Promise<boolean> {
+  public async closeRoom(roomId: string, resultId: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-        { _id: new ObjectId(roomId) },
-        {
-          $set: {
-            state: 'closed'
-          }
+      { _id: new ObjectId(roomId) },
+      {
+        $set: {
+          state: 'closed',
+          resultId
         }
+      }
     )
     return result.acknowledged && result.matchedCount === 1
   }
@@ -126,7 +128,7 @@ class RoomMongoDB implements RoomDAO {
    * Completes the current round and prepares for the next one
    * Stores round results in the room's roundHistory
    */
-  public async completeRound(roomId: string): Promise<{eliminatedOptions: string[], remainingOptions: string[], roundNumber: number} | null> {
+  public async completeRound(roomId: string): Promise<{ eliminatedOptions: string[], remainingOptions: string[], roundNumber: number } | null> {
     // Get the current room state
     const room = await this.getRoomById(roomId);
     if (!room) return null;
@@ -158,20 +160,20 @@ class RoomMongoDB implements RoomDAO {
 
     // Save the detailed round data to history
     await this.roomsCollection.updateOne(
-        { _id: room._id },
-        {
-          $push: {
-            roundHistory: {
-              roundNumber: currentRound,
-              options: room.options,
-              eliminatedOptions: eliminatedOptions,
-              votes: room.votes,
-              sortedOptions: completeOptions,
-              sortedTotals: completeTotals,
-              timestamp: Date.now()
-            }
+      { _id: room._id },
+      {
+        $push: {
+          roundHistory: {
+            roundNumber: currentRound,
+            options: room.options,
+            eliminatedOptions: eliminatedOptions,
+            votes: room.votes,
+            sortedOptions: completeOptions,
+            sortedTotals: completeTotals,
+            timestamp: Date.now()
           }
         }
+      }
     );
 
     return {
@@ -192,14 +194,14 @@ class RoomMongoDB implements RoomDAO {
     const newRoundNumber = (room.currentRound || 1) + 1;
 
     const result = await this.roomsCollection.updateOne(
-        { _id: new ObjectId(roomId) },
-        {
-          $set: {
-            currentRound: newRoundNumber,
-            options: remainingOptions,
-            votes: []
-          }
+      { _id: new ObjectId(roomId) },
+      {
+        $set: {
+          currentRound: newRoundNumber,
+          options: remainingOptions,
+          votes: []
         }
+      }
     );
 
     return result.acknowledged && result.matchedCount === 1;
@@ -210,8 +212,8 @@ class RoomMongoDB implements RoomDAO {
    */
   public async getCurrentRound(roomId: string): Promise<number> {
     const room = await this.roomsCollection.findOne(
-        { _id: new ObjectId(roomId) },
-        { projection: { currentRound: 1 } }
+      { _id: new ObjectId(roomId) },
+      { projection: { currentRound: 1 } }
     );
     return room?.currentRound || 1;
   }
@@ -221,8 +223,8 @@ class RoomMongoDB implements RoomDAO {
    */
   public async getRoundHistory(roomId: string): Promise<Room['roundHistory'] | undefined> {
     const room = await this.roomsCollection.findOne(
-        { _id: new ObjectId(roomId) },
-        { projection: { roundHistory: 1 } }
+      { _id: new ObjectId(roomId) },
+      { projection: { roundHistory: 1 } }
     );
     return room?.roundHistory;
   }

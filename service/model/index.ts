@@ -20,6 +20,7 @@ export interface Room {
   options: string[]
   votes: UserVote[]
   config: VoteConfig
+  resultId: string
 
   // ROUND STUFF
   currentRound?: number

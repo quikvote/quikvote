@@ -135,14 +135,17 @@ async function main() {
       return
     }
 
-    if (room.state !== 'open') {
-      res.status(409).send({ msg: 'Room is not open' })
-      return
-    }
-
     await roomDAO.addParticipantToRoom(room.code, user.username);
 
-    res.status(200).send({ ...room, isOwner: room.owner === user.username })
+    const currentVote = room.votes.find(uv => uv.username === user.username)?.vote
+    const lockedIn = currentVote !== undefined;
+
+    res.status(200).send({
+      ...room,
+      isOwner: room.owner === user.username,
+      lockedIn,
+      currentVote
+    })
   })
 
   anonymousApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
@@ -197,7 +200,7 @@ async function main() {
       return
     }
 
-    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals, users: result.sortedUsers, usersVotes: result.sortedUsersVotes})
+    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals, users: result.sortedUsers, usersVotes: result.sortedUsersVotes })
   })
 
   secureApiRouter.get('/history', async (req: Request, res: Response) => {
