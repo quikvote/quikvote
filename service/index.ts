@@ -135,8 +135,8 @@ async function main() {
       return
     }
 
-    if (room.state !== 'open') {
-      res.status(409).send({ msg: 'Room is not open' })
+    if (room.state !== 'open' && room.state !== 'preliminary') {
+      res.status(409).send({ msg: 'Room is not open or in preliminary phase' })
       return
     }
 
@@ -155,8 +155,8 @@ async function main() {
       return
     }
 
-    if (room.state !== 'open') {
-      res.status(409).send({ msg: 'Room is not open' })
+    if (room.state !== 'open' && room.state !== 'preliminary') {
+      res.status(409).send({ msg: 'Room is not open or in preliminary phase' })
       return
     }
 

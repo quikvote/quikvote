@@ -28,12 +28,24 @@ export enum ResultVisualizationType {
   Podium = 'podium'
 }
 
+export enum OptionAddingMode {
+  Everyone = 'everyone',     // Anyone can add options at any time
+  OwnerOnly = 'owner_only',  // Only the room owner can add options
+  PreliminaryRound = 'preliminary', // First a preliminary round for adding options, then voting
+  LimitedPerUser = 'limited_per_user' // Each user can add a limited number of options
+}
+
 export interface BaseModOptions { // options that apply to all vote types (eg. results options)
   // Result display options
   numRunnerUps: number
   showNumVotes: boolean
   showWhoVoted: boolean
   resultType: ResultVisualizationType
+
+  // Option adding controls
+  optionAddingMode: OptionAddingMode
+  optionsPerUser?: number      // For LimitedPerUser mode: max number of options each user can add
+  preliminaryRound?: boolean   // Whether to enable preliminary option adding phase
 
   // Multi-round voting options
   enableRound?: boolean        // Whether to enable multi-round voting

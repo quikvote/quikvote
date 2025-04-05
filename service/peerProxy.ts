@@ -6,7 +6,7 @@ import { DaoFactory } from "./factory/DaoFactory";
 import { v4 as uuidv4 } from 'uuid';
 import { IncomingMessage, Server } from 'http';
 import internal from 'stream';
-import { Result, Room, User } from './model';
+import { Result, Room, RoomOption, User } from './model';
 import { aggregationMap, Vote } from './model/voteTypes';
 import { WithId } from 'mongodb';
 
@@ -20,7 +20,7 @@ interface Connection {
 }
 
 interface WSEvent {
-  type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round'
+  type: 'new_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_voting' | 'start_next_round'
 }
 
 interface NewOptionEvent extends WSEvent {
@@ -42,6 +42,10 @@ interface CloseRoomEvent extends WSEvent {
 }
 
 interface StartNextRoundEvent extends WSEvent {
+  room: string
+}
+
+interface StartVotingEvent extends WSEvent {
   room: string
 }
 
@@ -115,6 +119,8 @@ class PeerProxy {
           this.handleCloseRoom(JSON.parse(dataString) as CloseRoomEvent, connection, connections);
         } else if (dataParsed.type == 'unlock_vote') {
           this.handleUnlockVote(JSON.parse(dataString) as UnlockVoteEvent, connection, connections);
+        } else if (dataParsed.type == 'start_voting') {
+          this.handleStartVoting(JSON.parse(dataString) as StartVotingEvent, connection, connections);
         } else if (dataParsed.type == 'start_next_round') {
           this.handleStartNextRound(JSON.parse(dataString) as StartNextRoundEvent, connection, connections);
         }
@@ -153,7 +159,8 @@ class PeerProxy {
       console.warn(`no room with id ${event.room}`)
       return
     }
-    if (room.state !== 'open') {
+    // Allow adding options in both 'open' and 'preliminary' states
+    if (room.state !== 'open' && room.state !== 'preliminary') {
       console.warn('room is closed')
       return
     }
@@ -162,16 +169,136 @@ class PeerProxy {
       return
     }
 
-    const newOption = event.option
-    if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
-      console.warn('room already includes option')
-      return
+    // Check option adding mode restrictions
+    const optionAddingMode = room.config.options?.optionAddingMode || 'everyone';
+    
+    // Only owner can add options
+    if (optionAddingMode === 'owner_only' && room.owner !== connection.user) {
+      console.warn(`Option adding mode is owner-only and user ${connection.user} is not the owner`);
+      connection.ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Only the room owner can add options' 
+      }));
+      return;
+    }
+    
+    // Check if preliminary round is enabled
+    const preliminaryRoundEnabled = room.config.options?.preliminaryRound === true;
+    
+    // If preliminary round is enabled but we're not in preliminary state,
+    // only allow adding options during the preliminary phase
+    if (preliminaryRoundEnabled && room.state !== 'preliminary') {
+      console.warn(`Room has preliminary round enabled but voting has already started`);
+      connection.ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Cannot add options after voting has started in preliminary mode' 
+      }));
+      return;
+    }
+    
+    // Check limited per user option
+    if (optionAddingMode === 'limited_per_user') {
+      const maxOptionsPerUser = room.config.options?.optionsPerUser || 3;
+      
+      // Count how many options this user has already added
+      const userOptions = room.options.filter(opt => 
+        typeof opt === 'object' && opt && 'addedBy' in opt && opt.addedBy === connection.user
+      ).length;
+      
+      if (userOptions >= maxOptionsPerUser) {
+        console.warn(`User ${connection.user} has reached their option limit of ${maxOptionsPerUser}`);
+        connection.ws.send(JSON.stringify({ 
+          type: 'error', 
+          message: `You can only add up to ${maxOptionsPerUser} options` 
+        }));
+        return;
+      }
     }
 
-    if (await this.roomDAO.addOptionToRoom(event.room, newOption)) {
-      connections.filter(c => room.participants.includes(c.user)).forEach(c => {
-        c.ws.send(JSON.stringify({ type: 'options', options: [...room.options, newOption] }));
+    const newOptionText = event.option;
+    
+    // Check if option text already exists in the room
+    try {
+      // Handle the case where options might be strings in old data
+      const optionExists = Array.isArray(room.options) && room.options.some(opt => {
+          return opt.text.toLowerCase() === newOptionText.toLowerCase();
       });
+      
+      if (optionExists) {
+        console.warn('room already includes option');
+        connection.ws.send(JSON.stringify({ 
+          type: 'error', 
+          message: 'This option already exists' 
+        }));
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking existing options:', error);
+      connection.ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Error checking options' 
+      }));
+      return;
+    }
+
+    // Create a proper RoomOption object
+    const optionWithMetadata: RoomOption = {
+      text: newOptionText,
+      addedBy: connection.user,
+      addedAt: new Date()
+    };
+
+    try {
+      const added = await this.roomDAO.addOptionToRoom(event.room, optionWithMetadata);
+      if (added) {
+        // Get updated room with the new option
+        const updatedRoom = await this.roomDAO.getRoomById(event.room);
+        if (updatedRoom && Array.isArray(updatedRoom.options)) {
+          // First send an acknowledgment to the client who added the option
+          connection.ws.send(JSON.stringify({ 
+            type: 'option_added',
+            option: {
+              text: optionWithMetadata.text,
+              addedBy: optionWithMetadata.addedBy,
+              addedAt: optionWithMetadata.addedAt
+            },
+            success: true
+          }));
+          
+          connections.filter(c => room.participants.includes(c.user)).forEach(c => {
+            c.ws.send(JSON.stringify({ 
+              type: 'option_added',
+              options: updatedRoom.options
+            }));
+          });
+        } else {
+          console.warn('Failed to retrieve updated room after adding option');
+          connection.ws.send(JSON.stringify({ 
+            type: 'option_added',
+            option: {
+              text: optionWithMetadata.text,
+              addedBy: optionWithMetadata.addedBy,
+              addedAt: optionWithMetadata.addedAt
+            },
+            success: false,
+            message: 'Option was added but failed to refresh options list'
+          }));
+        }
+      } else {
+        console.warn('Failed to add option to room');
+        connection.ws.send(JSON.stringify({ 
+          type: 'option_added',
+          option: optionWithMetadata,
+          success: false,
+          message: 'Could not add option to room'
+        }));
+      }
+    } catch (error) {
+      console.error('Error handling option addition:', error);
+      connection.ws.send(JSON.stringify({ 
+        type: 'error',
+        message: 'Server error while adding option'
+      }));
     }
   }
 
@@ -343,6 +470,56 @@ class PeerProxy {
       }));
     });
   }
+  
+  public async handleStartVoting(event: StartVotingEvent, connection: Connection, connections: Connection[]) {
+    const user = connection.user;
+    const roomId = event.room;
+    const room = await this.roomDAO.getRoomById(roomId);
+
+    if (!room) {
+      console.warn(`no room with id ${event.room}`);
+      return;
+    }
+
+    if (room.state !== 'preliminary') {
+      console.warn('room is not in preliminary state');
+      connection.ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Room is not in option adding phase' 
+      }));
+      return;
+    }
+
+    if (room.owner !== user) {
+      console.warn('user is not owner of room');
+      connection.ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Only the room owner can start voting' 
+      }));
+      return;
+    }
+
+    const success = await this.roomDAO.startVotingPhase(roomId);
+    
+    if (success) {
+      // Get updated room with 'open' state
+      const updatedRoom = await this.roomDAO.getRoomById(roomId);
+      if (!updatedRoom) {
+        console.warn('Failed to get updated room after starting voting phase');
+        return;
+      }
+      
+      connections.filter(c => room.participants.includes(c.user)).forEach(c => {
+        c.ws.send(JSON.stringify({ 
+          type: 'voting_started',
+          message: 'Voting has started. No new options can be added.',
+          roomState: 'open',
+          isOwner: updatedRoom.owner === c.user,
+          options: updatedRoom.options
+        }));
+      });
+    }
+  }
 
   public async handleStartNextRound(event: StartNextRoundEvent, connection: Connection, connections: Connection[]) {
     const user = connection.user;
@@ -371,22 +548,24 @@ class PeerProxy {
     }
 
     const latestRound = room.roundHistory[room.roundHistory.length - 1];
-    const currentOptions = room.options;
-    const eliminatedOptions = latestRound.eliminatedOptions;
+    const currentOptionTexts = room.options.map(opt => opt.text);
+    const eliminatedOptionTexts = latestRound.eliminatedOptions;
 
     // Calculate remaining options
-    const remainingOptions = currentOptions.filter(opt => !eliminatedOptions.includes(opt));
+    const remainingOptionTexts = currentOptionTexts.filter(
+      optText => !eliminatedOptionTexts.includes(optText)
+    );
 
     // Advance to the next round
-    await this.roomDAO.advanceToNextRound(roomId, remainingOptions);
+    await this.roomDAO.advanceToNextRound(roomId, remainingOptionTexts);
 
     // Notify all participants about the new round
     connections.filter(c => room.participants.includes(c.user)).forEach(c => {
       c.ws.send(JSON.stringify({
         type: 'next_round_started',
         roundNumber: (room.currentRound || 1) + 1,
-        remainingOptions: remainingOptions,
-        eliminatedOptions: eliminatedOptions,
+        remainingOptions: remainingOptionTexts,
+        eliminatedOptions: eliminatedOptionTexts,
         roundResults: {
           sortedOptions: latestRound.sortedOptions,
           sortedTotals: latestRound.sortedTotals

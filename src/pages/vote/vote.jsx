@@ -56,6 +56,7 @@ export default function Vote() {
   const [code, setCode] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [copied, setCopied] = useState(false); // eslint-disable-line no-unused-vars
+  const [isPreliminaryRound, setIsPreliminaryRound] = useState(false)
 
   // Multi-round specific state
   const [currentRound, setCurrentRound] = useState(1)
@@ -82,6 +83,13 @@ export default function Vote() {
         setConfig(body.config)
         setOptions(body.options)
         setIsRoomOwner(body.isOwner)
+        
+        // Check if this is a preliminary round
+        if (body.state === 'preliminary') {
+          setIsPreliminaryRound(true)
+        } else {
+          setIsPreliminaryRound(false)
+        }
 
         // Initialize round state
         if (body.config?.options?.enableRound) {
@@ -125,6 +133,39 @@ export default function Vote() {
     if (event.type == 'options') {
       const new_options = event.options
       setOptions(new_options)
+    } else if (event.type == 'option_added') {
+      // Handle the option_added event from the server
+      if (event.options) {
+        // If the server sends all options, update all options
+        setOptions(event.options)
+      } else if (event.option && event.success !== false) {
+        // If the server sends a single option with success, add it to the list
+        setOptions(prev => {
+          // Check if the option is already in the list (by text)
+          const exists = prev.some(opt => 
+            (typeof opt === 'string' && opt === event.option.text) || 
+            (typeof opt === 'object' && opt.text === event.option.text)
+          )
+          if (exists) return prev
+          return [...prev, event.option]
+        })
+      }
+    } else if (event.type == 'voting_started') {
+      // Handle when the preliminary round ends and voting starts
+      // This is received after the room owner starts the voting phase
+      alert(event.message || 'Voting has started!')
+      
+      // Update state with server information
+      setIsPreliminaryRound(false)
+      
+      // Update options if provided
+      if (event.options) {
+        setOptions(event.options)
+      }
+      
+      // Reset voting state for all users
+      setLockedIn(false)
+      setVote({})
     } else if (event.type == 'results-available') {
       setLockedIn(true)
       setResultsId(event.id || '')
@@ -162,6 +203,10 @@ export default function Vote() {
       if (event.eliminatedOptions) {
         setEliminatedOptions(prev => [...prev, ...event.eliminatedOptions])
       }
+    } else if (event.type == 'error') {
+      // Handle error messages from server
+      console.error("Server error:", event.message)
+      alert(event.message || 'An error occurred')
     }
   }
 
@@ -176,6 +221,12 @@ export default function Vote() {
   function startNextRound() {
     WSHandler.startNextRound(id)
   }
+  
+  function startVoting() {
+    WSHandler.startVoting(id)
+    // We don't immediately update the UI state here
+    // We'll wait for the server to send back the voting_started event
+  }
 
   function renderOptions() {
     if (code.length == 0) { // room hasn't loaded yet
@@ -184,10 +235,38 @@ export default function Vote() {
     if (options.length == 0) {
       return (<p>Add an option...</p>)
     }
-    return renderVote(config, options, vote, setVote, lockedIn)
+    
+    // Format options uniformly for the vote components
+    const formattedOptions = options.map(opt => {
+      // If option is already a string, use it directly
+      if (typeof opt === 'string') {
+        return opt
+      }
+      // If option is an object with text property, use the text
+      if (typeof opt === 'object' && opt && 'text' in opt) {
+        return opt.text
+      }
+      // Fallback case
+      return String(opt)
+    })
+    
+    return renderVote(config, formattedOptions, vote, setVote, lockedIn)
   }
 
   function renderRoundIndicator() {
+    // For preliminary round
+    if (isPreliminaryRound) {
+      return (
+        <div className="round-indicator preliminary-round">
+          <span className="round-badge preliminary-badge">Preliminary Round</span>
+          <span className="round-status">
+            Option Adding Phase - No Voting Yet
+          </span>
+        </div>
+      )
+    }
+    
+    // For regular rounds
     if (!roundEnabled) return null;
 
     return (
@@ -206,8 +285,9 @@ export default function Vote() {
     // Show top options from previous round results
     const topOptions = roundResults.sortedOptions.slice(0, 3);
 
-    // Show eliminated options
-    const latestEliminated = eliminatedOptions.slice(-config.options.eliminationCount);
+    // Show eliminated options - default to showing all if eliminationCount not set
+    const eliminationCount = config.options?.eliminationCount || eliminatedOptions.length;
+    const latestEliminated = eliminatedOptions.slice(-eliminationCount);
 
     return (
         <div className="round-results-summary">
@@ -226,6 +306,32 @@ export default function Vote() {
   }
 
   function renderButton() {
+    // If this is a preliminary round
+    if (isPreliminaryRound) {
+      if (isRoomOwner) {
+        // Only the room owner can start the voting phase
+        return (
+          <button
+            className="main__button main__button--start-voting"
+            onClick={startVoting}
+          >
+            Start Voting Phase
+            <span className="material-symbols-outlined">how_to_vote</span>
+          </button>
+        );
+      } else {
+        // Other participants just see a message
+        return (
+          <button
+            className="main__button main__button--disabled"
+            disabled
+          >
+            Waiting for owner to start voting...
+          </button>
+        );
+      }
+    }
+    
     // If we're waiting for the next round to start
     if (waitingForNextRound) {
       if (isRoomOwner && !config.options?.autoAdvance) {

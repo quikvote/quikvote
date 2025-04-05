@@ -256,6 +256,20 @@
   color: #0366d6;
 }
 
+.preliminary-info {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #fff4e0;
+  border: 1px dashed #ffa726;
+  border-radius: 4px;
+}
+
+.preliminary-info p {
+  margin: 0.5rem 0;
+  color: #333;
+  font-size: 0.9rem;
+}
+
 /* Round indicator styling */
 .round-indicator {
   display: flex;

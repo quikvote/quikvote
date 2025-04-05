@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId, WithId } from 'mongodb';
 import { RoomDAO } from '../RoomDAO';
-import { generateRandomRoomCode, Room } from '../../model';
+import { generateRandomRoomCode, Room, RoomOption } from '../../model';
 import { Vote, VoteConfig, aggregationMap } from '../../model/voteTypes';
 
 class RoomMongoDB implements RoomDAO {
@@ -11,13 +11,19 @@ class RoomMongoDB implements RoomDAO {
   }
 
   public async createRoom(creatorUsername: string, config: VoteConfig): Promise<WithId<Room>> {
+    // Determine initial state based on preliminary round setting
+    let initialState: 'open' | 'preliminary' = 'open';
+    if (config.options?.preliminaryRound === true) {
+      initialState = 'preliminary';
+    }
+    
     const newRoom: Room = {
       code: generateRandomRoomCode(),
       owner: creatorUsername,
       participants: [creatorUsername],
       options: [],
       votes: [],
-      state: 'open',
+      state: initialState,
       config
     }
 
@@ -50,7 +56,10 @@ class RoomMongoDB implements RoomDAO {
 
   public async addParticipantToRoom(roomCode: string, username: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-        { code: roomCode, state: 'open' },
+        { 
+          code: roomCode, 
+          $or: [{ state: 'open' }, { state: 'preliminary' }] 
+        },
         {
           $addToSet: {
             participants: username
@@ -60,12 +69,42 @@ class RoomMongoDB implements RoomDAO {
     return result.acknowledged && result.matchedCount === 1
   }
 
-  public async addOptionToRoom(roomId: string, option: string): Promise<boolean> {
+  public async addOptionToRoom(roomId: string, option: RoomOption): Promise<boolean> {
+    try {
+      // First check if the room exists and is in a valid state
+      const room = await this.getRoomById(roomId);
+      if (!room) {
+        console.warn(`Room ${roomId} not found`);
+        return false;
+      }
+      
+      if (room.state !== 'open' && room.state !== 'preliminary') {
+        console.warn(`Room ${roomId} is in state ${room.state}, not accepting options`);
+        return false;
+      }
+      
+      // Then add the option
+      const result = await this.roomsCollection.updateOne(
+          { _id: new ObjectId(roomId) },
+          {
+            $push: {
+              options: option
+            }
+          }
+      );
+      return result.acknowledged && result.matchedCount === 1;
+    } catch (error) {
+      console.error(`Error adding option to room ${roomId}:`, error);
+      return false;
+    }
+  }
+  
+  public async startVotingPhase(roomId: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-        { _id: new ObjectId(roomId), state: 'open' },
+        { _id: new ObjectId(roomId), state: 'preliminary' },
         {
-          $addToSet: {
-            options: option
+          $set: {
+            state: 'open'
           }
         }
     )
@@ -133,23 +172,30 @@ class RoomMongoDB implements RoomDAO {
     const aggregator = aggregationMap[room.config.type];
     const result = aggregator(room);
 
-    // Ensure all options are included in the results, even those with zero votes
-    const allOptions = room.options;
+    // Get option texts for easier processing
+    const allOptionTexts = room.options.map(opt => opt.text);
     const resultOptions = result.sortedOptions;
     const resultTotals = result.sortedTotals;
 
     // Find options missing from the results (those with zero votes)
-    const missingOptions = allOptions.filter(opt => !resultOptions.includes(opt));
+    const missingOptionTexts = allOptionTexts.filter(optText => !resultOptions.includes(optText));
 
     // Include missing options in the results with zero votes
-    const completeOptions = [...resultOptions, ...missingOptions];
-    const completeTotals = [...resultTotals, ...missingOptions.map(() => 0)];
+    const completeOptions = [...resultOptions, ...missingOptionTexts];
+    const completeTotals = [...resultTotals, ...missingOptionTexts.map(() => 0)];
 
     // Determine which options to eliminate (from the bottom)
-    const eliminatedOptions = completeOptions.slice(-eliminationCount);
+    const eliminatedOptionTexts = completeOptions.slice(-eliminationCount);
 
     // Calculate remaining options for next round
-    const remainingOptions = allOptions.filter(opt => !eliminatedOptions.includes(opt));
+    const remainingOptionTexts = allOptionTexts.filter(optText => 
+      !eliminatedOptionTexts.includes(optText)
+    );
+    
+    // Keep the original option objects for the remaining options
+    const remainingOptions = room.options.filter(opt => 
+      remainingOptionTexts.includes(opt.text)
+    );
 
     // Save the detailed round data to history
     await this.roomsCollection.updateOne(
@@ -159,7 +205,7 @@ class RoomMongoDB implements RoomDAO {
             roundHistory: {
               roundNumber: currentRound,
               options: room.options,
-              eliminatedOptions: eliminatedOptions,
+              eliminatedOptions: eliminatedOptionTexts,
               votes: room.votes,
               sortedOptions: completeOptions,
               sortedTotals: completeTotals,
@@ -170,8 +216,8 @@ class RoomMongoDB implements RoomDAO {
     );
 
     return {
-      eliminatedOptions,
-      remainingOptions,
+      eliminatedOptions: eliminatedOptionTexts,
+      remainingOptions: remainingOptionTexts,
       roundNumber: currentRound
     };
   }
@@ -180,11 +226,16 @@ class RoomMongoDB implements RoomDAO {
    * Advances to the next round with the remaining options
    * Resets votes for the new round
    */
-  public async advanceToNextRound(roomId: string, remainingOptions: string[]): Promise<boolean> {
+  public async advanceToNextRound(roomId: string, remainingOptionTexts: string[]): Promise<boolean> {
     const room = await this.getRoomById(roomId);
     if (!room) return false;
 
     const newRoundNumber = (room.currentRound || 1) + 1;
+    
+    // Filter the original options array to keep only the remaining options
+    const remainingOptions = room.options.filter(opt => 
+      remainingOptionTexts.includes(opt.text)
+    );
 
     const result = await this.roomsCollection.updateOne(
         { _id: new ObjectId(roomId) },
