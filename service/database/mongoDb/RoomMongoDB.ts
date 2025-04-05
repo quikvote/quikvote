@@ -43,6 +43,11 @@ class RoomMongoDB implements RoomDAO {
     return this.roomsCollection.findOne({ _id: new ObjectId(roomId) })
   }
 
+  public async getRoomByOwner(ownerUsername: string): Promise<WithId<Room> | null> {
+    // Get the most recent room created by this owner
+    return this.roomsCollection.findOne({ owner: ownerUsername }, { sort: { _id: -1 } })
+  }
+
   public async addParticipantToRoom(roomCode: string, username: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
         { code: roomCode, state: 'open' },

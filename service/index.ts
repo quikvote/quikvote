@@ -6,6 +6,7 @@ import { closeDB, getDB } from './database/mongoDb/MongoDB';
 import MongoDBDaoFactory from './factory/MongoDBDaoFactory';
 import { DaoFactory } from './factory/DaoFactory';
 import { VoteConfig } from './model/voteTypes';
+import { UserVote } from './model';
 
 void main()
 
@@ -196,7 +197,136 @@ async function main() {
       return
     }
 
-    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals })
+    // Get the room configuration to access voting options
+    const room = await roomDAO.getRoomByOwner(result.owner);
+    
+    // If room exists, include its config options
+    if (room) {
+      const configOptions = {
+        numRunnerUps: room.config.options.numRunnerUps,
+        showNumVotes: room.config.options.showNumVotes,
+        showWhoVoted: room.config.options.showWhoVoted,
+        resultType: room.config.options.resultType || 'bar'
+      };
+      
+      const responseData: any = { 
+        results: result.sortedOptions, 
+        totals: result.sortedTotals,
+        config: configOptions
+      };
+      
+      // Include voter information if showWhoVoted is enabled
+      if (configOptions.showWhoVoted) {
+        // First, collect usernames that voted for each option
+        const voterUsernames: Record<string, string[]> = {};
+        
+        // Initialize empty arrays for each option
+        result.sortedOptions.forEach(option => {
+          voterUsernames[option] = [];
+        });
+        
+        // Find the room with the latest votes from history if available
+        // TODO UPDATE THIS LOGIC - GARETT WHIMPLE
+        const processVotes = (votes: UserVote[]) => {
+          votes.forEach(vote => {
+            // Handle different vote types to determine what options each user voted for
+            switch (vote.vote.type) {
+              case 'score':
+                // For score voting, consider votes with score > 0
+                Object.entries((vote.vote as { scores: Record<string, number> }).scores).forEach(([option, score]) => {
+                  if (score > 0 && voterUsernames[option as string] !== undefined) {
+                    voterUsernames[option as string].push(vote.username);
+                  }
+                });
+                break;
+                
+              case 'rank':
+                // For rank voting, consider all ranked options
+                Object.entries((vote.vote as { rankings: Record<string, number> }).rankings).forEach(([option, _]) => {
+                  if (voterUsernames[option as string] !== undefined) {
+                    voterUsernames[option as string].push(vote.username);
+                  }
+                });
+                break;
+                
+              case 'topChoices':
+                // For top choices, add username to each chosen option
+                Object.entries((vote.vote as { topChoices: Record<string, string | null> }).topChoices).forEach(([_, optionValue]) => {
+                  if (optionValue && voterUsernames[optionValue as string] !== undefined) {
+                    voterUsernames[optionValue as string].push(vote.username);
+                  }
+                });
+                break;
+                
+              case 'approval':
+                // For approval, add user to approved options
+                Object.entries((vote.vote as { approvals: Record<string, boolean> }).approvals).forEach(([option, approved]) => {
+                  if (approved && voterUsernames[option as string] !== undefined) {
+                    voterUsernames[option as string].push(vote.username);
+                  }
+                });
+                break;
+                
+              case 'quadratic':
+                // For quadratic, consider options with votes > 0
+                Object.entries((vote.vote as { votes: Record<string, number> }).votes).forEach(([option, voteCount]) => {
+                  if (voteCount > 0 && voterUsernames[option as string] !== undefined) {
+                    voterUsernames[option as string].push(vote.username);
+                  }
+                });
+                break;
+            }
+          });
+        };
+        
+        if (room.roundHistory && room.roundHistory.length > 0) {
+          // Get the latest completed round
+          const latestRound = room.roundHistory[room.roundHistory.length - 1];
+          processVotes(latestRound.votes);
+        } else if (room.votes) {
+          // If no roundHistory, use current room votes
+          processVotes(room.votes);
+        }
+        
+        // Now convert usernames to display names (nickname or username)
+        const displayNamePromises: Promise<void>[] = [];
+        const voters: Record<string, string[]> = {};
+        
+        // Initialize the result structure
+        result.sortedOptions.forEach(option => {
+          voters[option] = [];
+        });
+        
+        // For each option, convert usernames to display names
+        for (const option of result.sortedOptions) {
+          for (const username of voterUsernames[option]) {
+            const promise = userDAO.getUser(username)
+              .then(user => {
+                if (user) {
+                  const displayName = user.nickname || user.username;
+                  voters[option].push(displayName);
+                } else {
+                  voters[option].push(username);
+                }
+              })
+              .catch(() => {
+                // If error, use the username
+                voters[option].push(username);
+              });
+            
+            displayNamePromises.push(promise);
+          }
+        }
+
+        await Promise.all(displayNamePromises);
+
+        responseData.voters = voters;
+      }
+      
+      res.status(200).send(responseData);
+    } else {
+      res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals });
+    }
   })
 
   secureApiRouter.get('/history', async (req: Request, res: Response) => {

@@ -22,10 +22,18 @@ export enum VoteType {
 
 // Vote options
 
+export enum ResultVisualizationType {
+  BarGraph = 'bar',
+  PieChart = 'pie',
+  Podium = 'podium'
+}
+
 export interface BaseModOptions { // options that apply to all vote types (eg. results options)
+  // Result display options
   numRunnerUps: number
   showNumVotes: boolean
   showWhoVoted: boolean
+  resultType: ResultVisualizationType
 
   // Multi-round voting options
   enableRound?: boolean        // Whether to enable multi-round voting

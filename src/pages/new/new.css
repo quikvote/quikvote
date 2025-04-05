@@ -173,12 +173,28 @@
   padding: 12px;
   border-radius: 6px;
   border-left: 4px solid #007bff;
+  margin-bottom: 20px;
 }
 
 .vote-type-description p {
   margin: 0;
   line-height: 1.5;
   color: #495057;
+}
+
+.result-visualization-preview {
+  background-color: #f1f8ff;
+  padding: 12px;
+  margin-top: 15px;
+  border-radius: 6px;
+  border-left: 4px solid #3b82f6;
+}
+
+.visualization-info {
+  margin: 0;
+  line-height: 1.5;
+  color: #4b5563;
+  font-size: 14px;
 }
 
 .option-note {

@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactApexChart from 'react-apexcharts';
+import './visualizations.css';
 
-export default function BarGraph({ items = [], totals = [] }) {
+export default function BarGraph({ items = [], totals = [], showNumVotes = true }) {
   const graph = {
-
     series: [{
+      name: 'Votes',
       data: totals
     }],
     options: {
@@ -16,24 +17,51 @@ export default function BarGraph({ items = [], totals = [] }) {
         }
       },
       tooltip: {
-        enabled: false
+        enabled: true,
+        y: {
+          formatter: function(value) {
+            return value + ' votes';
+          }
+        }
       },
       plotOptions: {
         bar: {
-          borderRadius: 4,
+          borderRadius: 6,
           borderRadiusApplication: 'end',
           horizontal: true,
+          barHeight: '70%',
+          distributed: true,
+          dataLabels: {
+            position: 'center',
+          },
         }
       },
       dataLabels: {
-        enabled: true,
+        enabled: showNumVotes, // Only show the vote counts if showNumVotes is true
         style: {
-          fontSize: '24px'
+          colors: ['#fff'],
+          fontSize: '16px',
+          fontWeight: 'bold',
+          fontFamily: 'inherit'
+        },
+        formatter: function(val) {
+          return showNumVotes ? val : '';
         }
       },
+      colors: [
+        '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe',
+        '#1d4ed8', '#3b5cf6', '#818cf8', '#a5b4fc', '#c7d2fe',
+        '#1e40af', '#4f46e5', '#4338ca', '#3730a3', '#312e81'
+      ],
       xaxis: {
         categories: items,
         labels: {
+          show: false
+        },
+        axisBorder: {
+          show: false
+        },
+        axisTicks: {
           show: false
         }
       },
@@ -41,17 +69,33 @@ export default function BarGraph({ items = [], totals = [] }) {
         labels: {
           show: true,
           style: {
-            fontSize: '24px'
+            fontSize: '16px',
+            fontFamily: 'inherit'
+          }
+        }
+      },
+      grid: {
+        show: false
+      },
+      states: {
+        hover: {
+          filter: {
+            type: 'darken',
+            value: 0.1
           }
         }
       }
     },
-
   }
 
-
-  return (<div>
-    <ReactApexChart options={graph.options} series={graph.series} type='bar' height={250} />
-  </div>
+  return (
+    <div className="bar-graph-container">
+      <ReactApexChart 
+        options={graph.options} 
+        series={graph.series} 
+        type='bar' 
+        height={Math.max(250, items.length * 50)} 
+      />
+    </div>
   )
 }

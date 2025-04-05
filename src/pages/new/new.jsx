@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import './new.css';
 import { NavLink, useNavigate } from 'react-router-dom';
+import {RESULT_TYPES} from "../results/results";
 
 const defaultConfig = {
   type: 'score',
   options: {
+    // Results options
     numRunnerUps: -1,
     showNumVotes: true,
     showWhoVoted: false,
+    resultType: RESULT_TYPES.BAR_GRAPH,
 
     // Score vote specific options
     minVotesPerOption: 0,
@@ -38,6 +41,7 @@ export default function New() {
       numRunnerUps: config.options.numRunnerUps,
       showNumVotes: config.options.showNumVotes,
       showWhoVoted: config.options.showWhoVoted,
+      resultType: config.options.resultType,
       enableRound: config.options.enableRound,
       eliminationCount: config.options.eliminationCount,
       maxRounds: config.options.maxRounds,
@@ -266,12 +270,77 @@ export default function New() {
                   <div className="vote-type-label">Quadratic</div>
                 </div>
               </div>
+              
+              <div className="vote-type-description">
+                {voteType === 'score' && (
+                    <p>Score voting allows participants to rate each option on a scale from {config.options.minVotesPerOption} to {config.options.maxVotesPerOption}.</p>
+                )}
+                {voteType === 'rank' && (
+                    <p>Rank voting allows participants to drag and reorder options based on their preference. The highest ranked option gets the most points.</p>
+                )}
+                {voteType === 'topChoices' && (
+                    <p>Top Choices voting allows participants to select their top {config.options.numberOfChoices} choices in order of preference.</p>
+                )}
+                {voteType === 'approval' && (
+                    <p>Approval voting allows participants to select all options they approve of. Each approved option receives one point.</p>
+                )}
+                {voteType === 'quadratic' && (
+                    <p>Quadratic voting gives participants {config.options.creditBudget} credits to allocate. The cost of votes increases quadratically (1 vote = 1 credit, 2 votes = 4 credits, etc.).</p>
+                )}
+              </div>
             </div>
 
             {renderTypeSpecificOptions()}
 
             <div className="option-group">
-              <h3>Common Options</h3>
+              <h3>Results Options</h3>
+              
+              {/* Results visualization type cards */}
+              <div className="vote-type-selector">
+                <div
+                    className={`vote-type-option ${config.options.resultType === RESULT_TYPES.BAR_GRAPH ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('resultType', RESULT_TYPES.BAR_GRAPH)}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">bar_chart</span>
+                  </div>
+                  <div className="vote-type-label">Bar Graph</div>
+                </div>
+
+                <div
+                    className={`vote-type-option ${config.options.resultType === RESULT_TYPES.PIE_CHART ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('resultType', RESULT_TYPES.PIE_CHART)}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">pie_chart</span>
+                  </div>
+                  <div className="vote-type-label">Pie Chart</div>
+                </div>
+
+                <div
+                    className={`vote-type-option ${config.options.resultType === RESULT_TYPES.PODIUM ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('resultType', RESULT_TYPES.PODIUM)}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">emoji_events</span>
+                  </div>
+                  <div className="vote-type-label">Podium</div>
+                </div>
+              </div>
+              
+              {/* Result visualization description */}
+              <div className="vote-type-description">
+                {config.options.resultType === RESULT_TYPES.BAR_GRAPH && 
+                  <p>Bar graph will display options as horizontal bars showing relative vote counts.</p>
+                }
+                {config.options.resultType === RESULT_TYPES.PIE_CHART && 
+                  <p>Pie chart will show the proportion of votes each option received.</p>
+                }
+                {config.options.resultType === RESULT_TYPES.PODIUM && 
+                  <p>Podium view will display options in ranking order with visual podium heights.</p>
+                }
+              </div>
+              
               <div className="option-row">
                 <label htmlFor="numRunnerUps">Number of Runner-ups to Show:</label>
                 <select
@@ -374,32 +443,14 @@ export default function New() {
               )}
             </div>
 
-            <div className="option-group">
-              <h3>Vote Type Description</h3>
-              <div className="vote-type-description">
-                {voteType === 'score' && (
-                    <p>Score voting allows participants to rate each option on a scale from {config.options.minVotesPerOption} to {config.options.maxVotesPerOption}.</p>
-                )}
-                {voteType === 'rank' && (
-                    <p>Rank voting allows participants to drag and reorder options based on their preference. The highest ranked option gets the most points.</p>
-                )}
-                {voteType === 'topChoices' && (
-                    <p>Top Choices voting allows participants to select their top {config.options.numberOfChoices} choices in order of preference.</p>
-                )}
-                {voteType === 'approval' && (
-                    <p>Approval voting allows participants to select all options they approve of. Each approved option receives one point.</p>
-                )}
-                {voteType === 'quadratic' && (
-                    <p>Quadratic voting gives participants {config.options.creditBudget} credits to allocate. The cost of votes increases quadratically (1 vote = 1 credit, 2 votes = 4 credits, etc.).</p>
-                )}
-
-                {config.options.enableRound && (
-                    <div className="round-description">
-                      <p className="round-note">Multi-round voting is enabled. After each round, the lowest-scoring options will be eliminated, and participants will vote again on the remaining options.</p>
-                    </div>
-                )}
+            {config.options.enableRound && (
+              <div className="option-group">
+                <h3>Round Information</h3>
+                <div className="vote-type-description">
+                  <p className="round-note">Multi-round voting is enabled. After each round, the lowest-scoring options will be eliminated, and participants will vote again on the remaining options.</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <button className="main__button" onClick={createRoom}>Begin QuikVote</button>

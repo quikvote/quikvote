@@ -1,0 +1,29 @@
+/* Common styles for all visualization components */
+
+.pie-chart-container,
+.bar-graph-container,
+.podium-container {
+  width: 100%;
+  margin-bottom: 30px;
+  padding: 10px;
+}
+
+/* Pie chart specific styling */
+.pie-chart-container {
+  padding-bottom: 40px;
+}
+
+.apexcharts-legend {
+  padding: 10px 0 !important;
+}
+
+.apexcharts-legend-series {
+  margin: 5px 10px !important;
+}
+
+/* Podium view styling - already defined in podiumView.css */
+
+/* Bar graph styling */
+.bar-graph-container {
+  padding-bottom: 20px;
+}
