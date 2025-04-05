@@ -3,6 +3,13 @@ import './new.css';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {RESULT_TYPES} from "../results/results";
 
+// Option adding modes for controlling who can add options
+export const OPTION_ADDING_MODES = {
+  EVERYONE: 'everyone',           // Anyone can add options at any time
+  OWNER_ONLY: 'owner_only',       // Only the room owner can add options
+  LIMITED_PER_USER: 'limited_per_user' // Each user can add a limited number of options
+};
+
 const defaultConfig = {
   type: 'score',
   options: {
@@ -11,6 +18,13 @@ const defaultConfig = {
     showNumVotes: true,
     showWhoVoted: false,
     resultType: RESULT_TYPES.BAR_GRAPH,
+    
+    // Option adding controls
+    optionAddingMode: OPTION_ADDING_MODES.EVERYONE,
+    optionsPerUser: 3,
+    
+    // Preliminary round option (separate from option adding mode)
+    preliminaryRound: false,
 
     // Score vote specific options
     minVotesPerOption: 0,
@@ -42,6 +56,15 @@ export default function New() {
       showNumVotes: config.options.showNumVotes,
       showWhoVoted: config.options.showWhoVoted,
       resultType: config.options.resultType,
+      
+      // Preserve option adding controls
+      optionAddingMode: config.options.optionAddingMode,
+      optionsPerUser: config.options.optionsPerUser,
+      
+      // Preserve preliminary round option
+      preliminaryRound: config.options.preliminaryRound,
+      
+      // Preserve round options
       enableRound: config.options.enableRound,
       eliminationCount: config.options.eliminationCount,
       maxRounds: config.options.maxRounds,
@@ -443,6 +466,70 @@ export default function New() {
               )}
             </div>
 
+            <div className="option-group">
+              <h3>Option Adding Controls</h3>
+              
+              <div className="option-row">
+                <label htmlFor="optionAddingMode">Who Can Add Options:</label>
+                <select
+                    id="optionAddingMode"
+                    value={config.options.optionAddingMode}
+                    onChange={(e) => handleCommonOptionChange('optionAddingMode', e.target.value)}
+                >
+                  <option value={OPTION_ADDING_MODES.EVERYONE}>Everyone (anytime)</option>
+                  <option value={OPTION_ADDING_MODES.OWNER_ONLY}>Room Owner Only</option>
+                  <option value={OPTION_ADDING_MODES.LIMITED_PER_USER}>Limited Per User</option>
+                </select>
+              </div>
+              
+              {/* Show options per user field only when LIMITED_PER_USER mode is selected */}
+              {config.options.optionAddingMode === OPTION_ADDING_MODES.LIMITED_PER_USER && (
+                <div className="option-row">
+                  <label htmlFor="optionsPerUser">Options Per User:</label>
+                  <input
+                    type="number"
+                    id="optionsPerUser"
+                    value={config.options.optionsPerUser}
+                    onChange={(e) => handleCommonOptionChange('optionsPerUser', parseInt(e.target.value))}
+                    min="1"
+                    max="10"
+                  />
+                </div>
+              )}
+              
+              {/* Preliminary round option */}
+              <div className="checkbox-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={config.options.preliminaryRound}
+                    onChange={(e) => handleCommonOptionChange('preliminaryRound', e.target.checked)}
+                  />
+                  Enable Preliminary Round for Options
+                </label>
+              </div>
+              
+              {config.options.preliminaryRound && (
+                <div className="preliminary-info">
+                  <p>A preliminary phase will be enabled where participants can add options before voting starts.</p>
+                  <p>The room owner will need to manually start the voting phase when all options have been added.</p>
+                </div>
+              )}
+              
+              {/* Descriptions for different option adding modes */}
+              <div className="vote-type-description">
+                {config.options.optionAddingMode === OPTION_ADDING_MODES.EVERYONE && (
+                  <p>Any participant can add options at any time during the voting process.</p>
+                )}
+                {config.options.optionAddingMode === OPTION_ADDING_MODES.OWNER_ONLY && (
+                  <p>Only the room creator can add options to the vote.</p>
+                )}
+                {config.options.optionAddingMode === OPTION_ADDING_MODES.LIMITED_PER_USER && (
+                  <p>Each participant can add up to {config.options.optionsPerUser} options to the vote.</p>
+                )}
+              </div>
+            </div>
+            
             {config.options.enableRound && (
               <div className="option-group">
                 <h3>Round Information</h3>

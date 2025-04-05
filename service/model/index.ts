@@ -12,12 +12,18 @@ export interface UserVote {
   vote: Vote
 }
 
+export interface RoomOption {
+  text: string
+  addedBy: string
+  addedAt: Date
+}
+
 export interface Room {
   code: string
   owner: string
-  state: 'open' | 'closed'
+  state: 'open' | 'closed' | 'preliminary'
   participants: string[]
-  options: string[]
+  options: RoomOption[]
   votes: UserVote[]
   config: VoteConfig
 
@@ -25,7 +31,7 @@ export interface Room {
   currentRound?: number
   roundHistory?: {
     roundNumber: number
-    options: string[]
+    options: RoomOption[]
     eliminatedOptions: string[]
     votes: UserVote[]
     sortedOptions?: string[]
