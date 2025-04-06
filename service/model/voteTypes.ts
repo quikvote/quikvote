@@ -46,6 +46,8 @@ export interface BaseModOptions { // options that apply to all vote types (eg. r
   optionAddingMode: OptionAddingMode
   optionsPerUser?: number      // For LimitedPerUser mode: max number of options each user can add
   preliminaryRound?: boolean   // Whether to enable preliminary option adding phase
+  addParticipantsAsOptions?: boolean // Whether to automatically add participants as options
+  showParticipants?: boolean   // Whether to show participants sidebar in the voting UI
 
   // Multi-round voting options
   enableRound?: boolean        // Whether to enable multi-round voting

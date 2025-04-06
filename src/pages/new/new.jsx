@@ -25,6 +25,12 @@ const defaultConfig = {
     
     // Preliminary round option (separate from option adding mode)
     preliminaryRound: false,
+    
+    // Add participants as options
+    addParticipantsAsOptions: false,
+    
+    // Show participants sidebar
+    showParticipants: false,
 
     // Score vote specific options
     minVotesPerOption: 0,
@@ -63,6 +69,9 @@ export default function New() {
       
       // Preserve preliminary round option
       preliminaryRound: config.options.preliminaryRound,
+      
+      // Preserve participants as options setting
+      addParticipantsAsOptions: config.options.addParticipantsAsOptions,
       
       // Preserve round options
       enableRound: config.options.enableRound,
@@ -383,22 +392,28 @@ export default function New() {
 
               <div className="checkbox-row">
                 <label>
-                  <input
-                      type="checkbox"
-                      checked={config.options.showNumVotes}
-                      onChange={(e) => handleCommonOptionChange('showNumVotes', e.target.checked)}
-                  />
+                  <span className="switch">
+                    <input
+                        type="checkbox"
+                        checked={config.options.showNumVotes}
+                        onChange={(e) => handleCommonOptionChange('showNumVotes', e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </span>
                   Show Number of Votes
                 </label>
               </div>
 
               <div className="checkbox-row">
                 <label>
-                  <input
-                      type="checkbox"
-                      checked={config.options.showWhoVoted}
-                      onChange={(e) => handleCommonOptionChange('showWhoVoted', e.target.checked)}
-                  />
+                  <span className="switch">
+                    <input
+                        type="checkbox"
+                        checked={config.options.showWhoVoted}
+                        onChange={(e) => handleCommonOptionChange('showWhoVoted', e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </span>
                   Show Who Voted
                 </label>
               </div>
@@ -408,11 +423,14 @@ export default function New() {
               <h3>Multi-Round Options</h3>
               <div className="checkbox-row">
                 <label>
-                  <input
-                      type="checkbox"
-                      checked={config.options.enableRound}
-                      onChange={(e) => handleCommonOptionChange('enableRound', e.target.checked)}
-                  />
+                  <span className="switch">
+                    <input
+                        type="checkbox"
+                        checked={config.options.enableRound}
+                        onChange={(e) => handleCommonOptionChange('enableRound', e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </span>
                   Enable Multi-round Voting
                 </label>
               </div>
@@ -445,11 +463,14 @@ export default function New() {
 
                     <div className="checkbox-row">
                       <label>
-                        <input
-                            type="checkbox"
-                            checked={config.options.autoAdvance}
-                            onChange={(e) => handleCommonOptionChange('autoAdvance', e.target.checked)}
-                        />
+                        <span className="switch">
+                          <input
+                              type="checkbox"
+                              checked={config.options.autoAdvance}
+                              onChange={(e) => handleCommonOptionChange('autoAdvance', e.target.checked)}
+                          />
+                          <span className="slider"></span>
+                        </span>
                         Automatically Advance to Next Round
                       </label>
                     </div>
@@ -469,17 +490,40 @@ export default function New() {
             <div className="option-group">
               <h3>Option Adding Controls</h3>
               
-              <div className="option-row">
-                <label htmlFor="optionAddingMode">Who Can Add Options:</label>
-                <select
-                    id="optionAddingMode"
-                    value={config.options.optionAddingMode}
-                    onChange={(e) => handleCommonOptionChange('optionAddingMode', e.target.value)}
+              <h4>Who Can Add Options:</h4>
+              <div className="option-adding-selector">
+                <div
+                  className={`option-adding-option ${config.options.optionAddingMode === OPTION_ADDING_MODES.EVERYONE ? 'option-adding-option--selected' : ''}`}
+                  onClick={() => handleCommonOptionChange('optionAddingMode', OPTION_ADDING_MODES.EVERYONE)}
                 >
-                  <option value={OPTION_ADDING_MODES.EVERYONE}>Everyone (anytime)</option>
-                  <option value={OPTION_ADDING_MODES.OWNER_ONLY}>Room Owner Only</option>
-                  <option value={OPTION_ADDING_MODES.LIMITED_PER_USER}>Limited Per User</option>
-                </select>
+                  <div className="option-adding-icon">
+                    <span className="material-symbols-outlined">groups</span>
+                  </div>
+                  <div className="vote-type-label">Everyone</div>
+                  <div className="vote-type-sublabel">Any participant can add options</div>
+                </div>
+                
+                <div
+                  className={`option-adding-option ${config.options.optionAddingMode === OPTION_ADDING_MODES.OWNER_ONLY ? 'option-adding-option--selected' : ''}`}
+                  onClick={() => handleCommonOptionChange('optionAddingMode', OPTION_ADDING_MODES.OWNER_ONLY)}
+                >
+                  <div className="option-adding-icon">
+                    <span className="material-symbols-outlined">admin_panel_settings</span>
+                  </div>
+                  <div className="vote-type-label">Owner Only</div>
+                  <div className="vote-type-sublabel">Only the room creator can add options</div>
+                </div>
+                
+                <div
+                  className={`option-adding-option ${config.options.optionAddingMode === OPTION_ADDING_MODES.LIMITED_PER_USER ? 'option-adding-option--selected' : ''}`}
+                  onClick={() => handleCommonOptionChange('optionAddingMode', OPTION_ADDING_MODES.LIMITED_PER_USER)}
+                >
+                  <div className="option-adding-icon">
+                    <span className="material-symbols-outlined">counter_3</span>
+                  </div>
+                  <div className="vote-type-label">Limited Per User</div>
+                  <div className="vote-type-sublabel">Each participant has a limit</div>
+                </div>
               </div>
               
               {/* Show options per user field only when LIMITED_PER_USER mode is selected */}
@@ -500,11 +544,14 @@ export default function New() {
               {/* Preliminary round option */}
               <div className="checkbox-row">
                 <label>
-                  <input
-                    type="checkbox"
-                    checked={config.options.preliminaryRound}
-                    onChange={(e) => handleCommonOptionChange('preliminaryRound', e.target.checked)}
-                  />
+                  <span className="switch">
+                    <input
+                      type="checkbox"
+                      checked={config.options.preliminaryRound}
+                      onChange={(e) => handleCommonOptionChange('preliminaryRound', e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </span>
                   Enable Preliminary Round for Options
                 </label>
               </div>
@@ -513,21 +560,61 @@ export default function New() {
                 <div className="preliminary-info">
                   <p>A preliminary phase will be enabled where participants can add options before voting starts.</p>
                   <p>The room owner will need to manually start the voting phase when all options have been added.</p>
+                  <p>This is perfect for brainstorming sessions where you want to collect ideas first, then vote on them.</p>
                 </div>
               )}
               
-              {/* Descriptions for different option adding modes */}
-              <div className="vote-type-description">
-                {config.options.optionAddingMode === OPTION_ADDING_MODES.EVERYONE && (
-                  <p>Any participant can add options at any time during the voting process.</p>
-                )}
-                {config.options.optionAddingMode === OPTION_ADDING_MODES.OWNER_ONLY && (
-                  <p>Only the room creator can add options to the vote.</p>
-                )}
-                {config.options.optionAddingMode === OPTION_ADDING_MODES.LIMITED_PER_USER && (
-                  <p>Each participant can add up to {config.options.optionsPerUser} options to the vote.</p>
-                )}
+              {/* Add participants as options checkbox */}
+              <div className="checkbox-row">
+                <label>
+                  <span className="switch">
+                    <input
+                      type="checkbox"
+                      checked={config.options.addParticipantsAsOptions}
+                      onChange={(e) => handleCommonOptionChange('addParticipantsAsOptions', e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </span>
+                  Add Participants as Options
+                </label>
               </div>
+              
+              {config.options.addParticipantsAsOptions && (
+                <div className="participants-options-info">
+                  <p>When participants join the room, they&apos;ll automatically be added as options using their nickname (or username).</p>
+                  <p>Great for voting on people, like choosing team leads or selecting the best presenter.</p>
+                </div>
+              )}
+              
+              {/* Show participants sidebar option */}
+              <div className="checkbox-row">
+                <label>
+                  <span className="switch">
+                    <input
+                      type="checkbox"
+                      checked={config.options.showParticipants}
+                      onChange={(e) => handleCommonOptionChange('showParticipants', e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </span>
+                  Show Participants Sidebar
+                </label>
+              </div>
+              
+              {config.options.showParticipants && (
+                <div className="participants-options-info">
+                  <p>A sidebar will display showing all participants in the room with their nicknames (or usernames).</p>
+                  <p>Useful for tracking who has joined the voting session.</p>
+                </div>
+              )}
+              
+              {/* Additional context for Limited Per User mode */}
+              {config.options.optionAddingMode === OPTION_ADDING_MODES.LIMITED_PER_USER && (
+                <div className="vote-type-description">
+                  <p>With this setting, each participant can add up to {config.options.optionsPerUser} options to the vote.</p>
+                  <p>This ensures equal participation while preventing any single person from dominating the option list.</p>
+                </div>
+              )}
             </div>
             
             {config.options.enableRound && (

@@ -141,8 +141,47 @@ async function main() {
     }
 
     await roomDAO.addParticipantToRoom(room.code, user.username);
+    
+    // NOTE: We're no longer adding the participant as an option here
+    // This will be handled exclusively by the WebSocket notification in notifyParticipantChange
+    // to ensure all clients get notified properly
 
     res.status(200).send({ ...room, isOwner: room.owner === user.username })
+  })
+  
+  // Endpoint to get participant information including nicknames
+  anonymousApiRouter.get('/room/:id/participants', async (req: Request, res: Response) => {
+    const user = await getUserFromRequest(req)
+    const roomId = req.params.id
+    const room = await roomDAO.getRoomById(roomId);
+
+    if (!user) {
+      res.status(404).send({ msg: `User not signed in` })
+      return
+    }
+
+    if (!room) {
+      res.status(404).send({ msg: `Room ${roomId} does not exist` })
+      return
+    }
+    
+    // Get participant details for everyone in the room
+    const participantDetails = await Promise.all(
+      room.participants.map(async (username) => {
+        const userInfo = await userDAO.getUser(username);
+        return {
+          username,
+          nickname: userInfo?.nickname || null,
+          isOwner: username === room.owner
+        };
+      })
+    );
+
+    res.status(200).send({ 
+      participants: participantDetails,
+      roomId: roomId,
+      roomCode: room.code
+    });
   })
 
   anonymousApiRouter.post('/room/:code/join', async (req: Request, res: Response) => {
@@ -163,6 +202,10 @@ async function main() {
     const success = await roomDAO.addParticipantToRoom(roomCode, user!.username);
 
     if (success) {
+      // NOTE: We're no longer adding the participant as an option here
+      // This will be handled exclusively by the WebSocket notification in notifyParticipantChange
+      // to ensure all clients get notified properly
+      
       res.status(200).send({ id: room._id })
     } else {
       res.status(500).send({ msg: 'error adding participant' })

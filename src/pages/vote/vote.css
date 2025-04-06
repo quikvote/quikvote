@@ -240,3 +240,63 @@
 .next-round-button--disabled:hover {
   background-color: #ccc;
 }
+
+/* Participants sidebar */
+.app-container {
+  display: flex;
+  width: 100%;
+}
+
+.app-container.with-sidebar .main {
+  flex: 1;
+}
+
+.participants-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  padding: 16px;
+  height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+
+.participants-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  color: #495057;
+  gap: 8px;
+}
+
+.participants-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  gap: 8px;
+}
+
+.participant-name {
+  flex: 1;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.participant-badge {
+  font-size: 0.7rem;
+  background-color: #007bff;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}

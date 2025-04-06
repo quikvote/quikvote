@@ -69,6 +69,61 @@ class RoomMongoDB implements RoomDAO {
     return result.acknowledged && result.matchedCount === 1
   }
 
+  /**
+   * Add a participant as an option to the room
+   * Uses their nickname if available, otherwise uses their username
+   */
+  public async addParticipantAsOption(roomId: string, username: string, nickname: string | null): Promise<boolean> {
+    try {
+      // First check if the room exists and is in a valid state
+      const room = await this.getRoomById(roomId);
+      if (!room) {
+        console.warn(`Room ${roomId} not found`);
+        return false;
+      }
+      
+      if (room.state !== 'open' && room.state !== 'preliminary') {
+        console.warn(`Room ${roomId} is in state ${room.state}, not accepting options`);
+        return false;
+      }
+
+      // Create option with the user's nickname or username
+      const optionText = nickname || username;
+      
+      // Check if this option already exists
+      const optionExists = Array.isArray(room.options) && room.options.some(opt => {
+        return opt.text.toLowerCase() === optionText.toLowerCase();
+      });
+      
+      if (optionExists) {
+        // Option already exists, nothing to do
+        return true;
+      }
+      
+      // Create the option object
+      const option: RoomOption = {
+        text: optionText,
+        addedBy: username, 
+        addedAt: new Date()
+      };
+      
+      // Add the option to the room
+      const result = await this.roomsCollection.updateOne(
+        { _id: new ObjectId(roomId) },
+        {
+          $push: {
+            options: option
+          }
+        }
+      );
+      
+      return result.acknowledged && result.matchedCount === 1;
+    } catch (error) {
+      console.error(`Error adding participant as option to room ${roomId}:`, error);
+      return false;
+    }
+  }
+
   public async addOptionToRoom(roomId: string, option: RoomOption): Promise<boolean> {
     try {
       // First check if the room exists and is in a valid state
@@ -271,6 +326,18 @@ class RoomMongoDB implements RoomDAO {
         { projection: { roundHistory: 1 } }
     );
     return room?.roundHistory;
+  }
+  
+  /**
+   * Gets all rooms (limit to recent ones for performance)
+   */
+  public async getAllRooms(): Promise<WithId<Room>[]> {
+    // For now, return a limited number of the most recent rooms
+    // In a production app, you'd want to add more sophisticated querying
+    return this.roomsCollection.find({})
+      .sort({ _id: -1 })
+      .limit(100)
+      .toArray();
   }
 }
 

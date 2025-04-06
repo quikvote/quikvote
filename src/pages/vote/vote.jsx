@@ -66,6 +66,10 @@ export default function Vote() {
   const [roundResults, setRoundResults] = useState([])
   const [waitingForNextRound, setWaitingForNextRound] = useState(false)
   const [roundComplete, setRoundComplete] = useState(false)
+  
+  // Participants sidebar
+  const [participants, setParticipants] = useState([])
+  const [showParticipants, setShowParticipants] = useState(false)
 
   const { id } = useParams()
 
@@ -83,6 +87,28 @@ export default function Vote() {
         setConfig(body.config)
         setOptions(body.options)
         setIsRoomOwner(body.isOwner)
+        
+        // Initialize participants list
+        if (body.participants) {
+          // Fetch participant details including nicknames
+          const participantsResponse = await fetch(`/api/room/${id}/participants`, {
+            method: 'GET',
+            headers: {
+              'Content-type': 'application/json; charset=UTF-8'
+            }
+          });
+          
+          if (participantsResponse.status === 200) {
+            const participantsData = await participantsResponse.json();
+            setParticipants(participantsData.participants);
+          } else {
+            // Fallback to just using the usernames
+            setParticipants(body.participants.map(username => ({ username, nickname: null })));
+          }
+          
+          // Check if we should show participants sidebar
+          setShowParticipants(body.config?.options?.showParticipants === true);
+        }
         
         // Check if this is a preliminary round
         if (body.state === 'preliminary') {
@@ -131,21 +157,31 @@ export default function Vote() {
     console.log("WebSocket event received:", event)
 
     if (event.type == 'options') {
+      console.log("Received options update:", event.options);
       const new_options = event.options
       setOptions(new_options)
+    } else if (event.type == 'participant_joined' || event.type == 'participant_left') {
+      // Update the participants list when someone joins or leaves
+      if (event.participants) {
+        setParticipants(event.participants);
+      }
     } else if (event.type == 'option_added') {
       // Handle the option_added event from the server
+      console.log("Received option_added event:", event);
       if (event.options) {
         // If the server sends all options, update all options
+        console.log("Updating all options:", event.options);
         setOptions(event.options)
       } else if (event.option && event.success !== false) {
         // If the server sends a single option with success, add it to the list
+        console.log("Adding single option:", event.option);
         setOptions(prev => {
           // Check if the option is already in the list (by text)
           const exists = prev.some(opt => 
             (typeof opt === 'string' && opt === event.option.text) || 
             (typeof opt === 'object' && opt.text === event.option.text)
           )
+          console.log("Option already exists:", exists);
           if (exists) return prev
           return [...prev, event.option]
         })
@@ -190,7 +226,11 @@ export default function Vote() {
       setCurrentRound(event.roundNumber)
       setOptions(event.remainingOptions)
       setLockedIn(false)
+      
+      // Reset vote state - the score component will initialize defaults
+      console.log("Resetting vote state for new round")
       setVote({})
+      
       setResultsId('')
       setWaitingForNextRound(false)
       setRoundComplete(false)
@@ -435,6 +475,35 @@ export default function Vote() {
     return viewResultsButton
   }
 
+  // Function to render the participants sidebar
+  function renderParticipants() {
+    if (!showParticipants || participants.length === 0) {
+      return null;
+    }
+    
+    return (
+      <div className="participants-sidebar">
+        <h3 className="participants-title">
+          <span className="material-symbols-outlined">people</span>
+          Participants ({participants.length})
+        </h3>
+        <ul className="participants-list">
+          {participants.map((participant, index) => (
+            <li key={index} className="participant-item">
+              <span className="material-symbols-outlined">person</span>
+              <span className="participant-name">
+                {participant.nickname || participant.username}
+              </span>
+              {participant.username === config.owner && 
+                <span className="participant-badge">Host</span>
+              }
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
   return (
       <>
         <header className="header header--room-code" onClick={() => setModalOpen(true)}>
@@ -442,16 +511,19 @@ export default function Vote() {
           <span className="material-symbols-outlined">ios_share</span>
           <span className={`header-room-code__toast ${copied ? 'header-room-code__toast--visible' : ''}`}>Copied</span>
         </header>
-        <main className="main">
-          {renderRoundIndicator()}
-          {renderPreviousRoundResults()}
+        <div className={`app-container ${showParticipants ? 'with-sidebar' : ''}`}>
+          {renderParticipants()}
+          <main className="main">
+            {renderRoundIndicator()}
+            {renderPreviousRoundResults()}
 
-          <ul className="vote-options">
-            {renderOptions()}
-          </ul>
-          <AddOption onSubmit={addOption} disabled={lockedIn || waitingForNextRound} />
-          {renderButton()}
-        </main>
+            <ul className="vote-options">
+              {renderOptions()}
+            </ul>
+            <AddOption onSubmit={addOption} disabled={lockedIn || waitingForNextRound} />
+            {renderButton()}
+          </main>
+        </div>
         <ShareModal
             isOpen={modalOpen}
             onClose={() => setModalOpen(false)}

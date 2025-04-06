@@ -8,6 +8,7 @@ export interface RoomDAO {
   getRoomById: (roomId: string) => Promise<WithId<Room> | null>,
   getRoomByOwner: (ownerUsername: string) => Promise<WithId<Room> | null>,
   addParticipantToRoom: (roomCode: string, username: string) => Promise<boolean>,
+  addParticipantAsOption: (roomId: string, username: string, nickname: string | null) => Promise<boolean>,
   addOptionToRoom: (roomId: string, option: RoomOption) => Promise<boolean>,
   submitUserVotes: (roomId: string, username: string, vote: Vote) => Promise<boolean>,
   removeUserVotes: (roomId: string, username: string) => Promise<void>,
@@ -21,5 +22,6 @@ export interface RoomDAO {
   completeRound: (roomId: string) => Promise<{eliminatedOptions: string[], remainingOptions: string[], roundNumber: number} | null>,
   advanceToNextRound: (roomId: string, remainingOptions: string[]) => Promise<boolean>,
   getCurrentRound: (roomId: string) => Promise<number>,
-  getRoundHistory: (roomId: string) => Promise<Room['roundHistory'] | undefined>
+  getRoundHistory: (roomId: string) => Promise<Room['roundHistory'] | undefined>,
+  getAllRooms: () => Promise<WithId<Room>[]>
 }

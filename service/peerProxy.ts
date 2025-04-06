@@ -103,9 +103,12 @@ class PeerProxy {
 
     const connections: Connection[] = [];
 
-    wss.on('connection', (ws: WebSocket, _request: IncomingMessage, user: User) => {
-      const connection: Connection = { id: uuidv4(), alive: true, ws: ws, user: user.username };
+    wss.on('connection', async (ws: WebSocket, _request: IncomingMessage, user: User) => {
+      const connection: Connection = {id: uuidv4(), alive: true, ws: ws, user: user.username};
       connections.push(connection);
+
+      // Notify all participants about the new connection if needed
+      await this.notifyParticipantChange(connections, user.username);
 
       ws.on('message', async (data: RawData) => {
         const dataString = data.toString();
@@ -132,6 +135,9 @@ class PeerProxy {
 
         if (pos >= 0) {
           connections.splice(pos, 1);
+
+          // Notify remaining participants that someone left
+          this.notifyParticipantChange(connections, connection.user, true);
         }
       });
 
@@ -580,6 +586,92 @@ class PeerProxy {
     const aggregator = aggregationMap[room.config.type]
     const result = aggregator(room)
     return await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals);
+  }
+  
+  // Notify participants about changes in participant list
+  private async notifyParticipantChange(connections: Connection[], username: string, isLeaving: boolean = false) {
+    // Find all rooms that the user is in
+    const rooms = await this.findRoomsForUser(username);
+    
+    // For each room, notify other participants
+    for (const room of rooms) {
+      // Get user details including nickname
+      const userInfo = await this.userDAO.getUser(username);
+      
+      // If user is leaving, remove them from the participants list for notification
+      let participants = [...room.participants];
+      if (isLeaving) {
+        participants = participants.filter(p => p !== username);
+      }
+      
+      // Get detailed participant info including nicknames
+      const participantDetails = await Promise.all(
+        participants.map(async (participantUsername) => {
+          const participantInfo = await this.userDAO.getUser(participantUsername);
+          return {
+            username: participantUsername,
+            nickname: participantInfo?.nickname || null,
+            isOwner: participantUsername === room.owner
+          };
+        })
+      );
+      
+      // Notify all connected participants in this room
+      const roomConnections = connections.filter(c => room.participants.includes(c.user));
+      
+      // Add participant as option if that feature is enabled
+      if (!isLeaving && room.config?.options?.addParticipantsAsOptions) {
+        // Check if the participant is already an option
+        const optionExists = room.options.some(opt =>
+          (typeof opt === 'object' && opt.text === (userInfo?.nickname || username))
+        );
+        
+        console.log(`Checking if participant ${username} (${userInfo?.nickname || 'no nickname'}) exists as option: ${optionExists ? 'YES' : 'NO'}`);
+        console.log(`Room has ${roomConnections.length} active connections`);
+        
+        if (!optionExists) {
+          // Add the participant as an option
+          await this.roomDAO.addParticipantAsOption(room._id.toString(), username, userInfo?.nickname || null);
+          
+          // Get the updated room with new options
+          const updatedRoom = await this.roomDAO.getRoomById(room._id.toString());
+          if (updatedRoom) {
+            console.log(`Broadcasting options update for room ${room._id} to ${roomConnections.length} connections`);
+            
+            // Send updated options to all participants
+            roomConnections.forEach(c => {
+              console.log(`Sending option_added event to participant: ${c.user}`);
+              c.ws.send(JSON.stringify({
+                type: 'option_added',
+                options: updatedRoom.options,
+                message: `${userInfo?.nickname || username} was added as an option`
+              }));
+            });
+          }
+        }
+      }
+      
+      // Send participant updates only if showParticipants is enabled
+      if (room.config?.options?.showParticipants) {
+        roomConnections.forEach(c => {
+          c.ws.send(JSON.stringify({
+            type: isLeaving ? 'participant_left' : 'participant_joined',
+            username: username,
+            nickname: userInfo?.nickname || null,
+            participants: participantDetails
+          }));
+        });
+      }
+    }
+  }
+  
+  // Helper method to find all rooms a user is in
+  private async findRoomsForUser(username: string): Promise<WithId<Room>[]> {
+    const allRooms = await this.roomDAO.getAllRooms();
+    return allRooms.filter(room => 
+      room.participants.includes(username) && 
+      (room.state === 'open' || room.state === 'preliminary')
+    );
   }
 }
 
