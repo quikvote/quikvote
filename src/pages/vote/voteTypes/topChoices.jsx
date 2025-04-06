@@ -59,6 +59,16 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
         }
     }, [selections]);
 
+    // Handle a removed vote
+    useEffect(() => {
+        if (selections) {
+            const filteredSelections = Object.fromEntries(
+                Object.entries(selections).filter(([, value]) => options.includes(value))
+            );
+            setSelections(filteredSelections);
+        }
+    }, [options])
+
     const handleSelection = (option, position) => {
         if (disabled) return;
 

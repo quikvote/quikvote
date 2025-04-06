@@ -28,10 +28,23 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
                 costs: {}
             });
             setRemainingCredits(creditBudget);
-        } else {
+        } else {            
+            // Filter out deleted options from votes and costs
+            const filteredVotes = Object.fromEntries(
+                Object.entries(vote.votes || {}).filter(([option]) => options.includes(option))
+            );
+            const filteredCosts = Object.fromEntries(
+                Object.entries(vote.costs || {}).filter(([option]) => options.includes(option))
+            );
+
+            setVote({
+                votes: filteredVotes,
+                costs: filteredCosts
+            });
+
             // Calculate remaining credits
             let usedCredits = 0;
-            Object.values(vote.costs || {}).forEach(cost => {
+            Object.values(filteredCosts || {}).forEach(cost => {
                 usedCredits += cost;
             });
             setRemainingCredits(creditBudget - usedCredits);
