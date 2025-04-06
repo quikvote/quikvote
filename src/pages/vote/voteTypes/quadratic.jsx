@@ -29,7 +29,7 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
             });
             setRemainingCredits(creditBudget);
         } else {            
-            // Filter out deleted otpions from votes and costs
+            // Filter out deleted options from votes and costs
             const filteredVotes = Object.fromEntries(
                 Object.entries(vote.votes || {}).filter(([option]) => options.includes(option))
             );
