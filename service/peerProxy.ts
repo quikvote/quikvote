@@ -445,11 +445,12 @@ class PeerProxy {
   }
 
   private async closeRoom(room: WithId<Room>): Promise<WithId<Result>> {
-    await this.roomDAO.closeRoom(room._id.toHexString());
-
     const aggregator = aggregationMap[room.config.type]
     const result = aggregator(room)
-    return await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals, result.sortedUsers, result.sortedUsersVotes);
+    const storedResult = await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals, result.sortedUsers, result.sortedUsersVotes);
+
+    await this.roomDAO.closeRoom(room._id.toHexString(), storedResult._id.toHexString());
+    return storedResult
   }
 }
 
