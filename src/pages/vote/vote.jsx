@@ -101,8 +101,8 @@ export default function Vote() {
 
             // Store results from the most recent round
             const latestRound = body.roundHistory[body.roundHistory.length - 1];
-            if (latestRound.sortedOptions) {
-              setRoundResults(latestRound.sortedOptions);
+            if (latestRound.result) {
+              setRoundResults(latestRound.result);
             }
           }
         }
@@ -213,10 +213,10 @@ export default function Vote() {
   }
 
   function renderPreviousRoundResults() {
-    if (!roundEnabled || currentRound === 1 || !roundResults.sortedOptions) return null;
+    if (!roundEnabled || currentRound === 1 || !roundResults || !roundResults.options) return null;
 
     // Show top options from previous round results
-    const topOptions = roundResults.sortedOptions.slice(0, 3);
+    const topOptions = roundResults.options.slice(0, 3).map(opt => opt.name);
 
     // Show eliminated options
     const latestEliminated = eliminatedOptions.slice(-config.options.eliminationCount);

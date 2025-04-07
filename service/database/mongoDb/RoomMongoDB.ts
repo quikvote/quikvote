@@ -44,6 +44,10 @@ class RoomMongoDB implements RoomDAO {
     return this.roomsCollection.findOne({ _id: new ObjectId(roomId) })
   }
 
+  public async getRoomByResultId(resultId: string): Promise<WithId<Room> | null> {
+    return this.roomsCollection.findOne({ resultId })
+  }
+
   public async addParticipantToRoom(roomCode: string, username: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
       { code: roomCode, state: 'open' },
@@ -140,23 +144,14 @@ class RoomMongoDB implements RoomDAO {
     const aggregator = aggregationMap[room.config.type];
     const result = aggregator(room);
 
-    // Ensure all options are included in the results, even those with zero votes
-    const allOptions = room.options;
-    const resultOptions = result.sortedOptions;
-    const resultTotals = result.sortedTotals;
-
-    // Find options missing from the results (those with zero votes)
-    const missingOptions = allOptions.filter(opt => !resultOptions.includes(opt));
-
-    // Include missing options in the results with zero votes
-    const completeOptions = [...resultOptions, ...missingOptions];
-    const completeTotals = [...resultTotals, ...missingOptions.map(() => 0)];
-
+    // Get all option names from the results
+    const optionNames = result.options.map(opt => opt.name);
+    
     // Determine which options to eliminate (from the bottom)
-    const eliminatedOptions = completeOptions.slice(-eliminationCount);
+    const eliminatedOptions = result.options.slice(-eliminationCount).map(opt => opt.name);
 
     // Calculate remaining options for next round
-    const remainingOptions = allOptions.filter(opt => !eliminatedOptions.includes(opt));
+    const remainingOptions = room.options.filter(opt => !eliminatedOptions.includes(opt));
 
     // Save the detailed round data to history
     await this.roomsCollection.updateOne(
@@ -165,12 +160,8 @@ class RoomMongoDB implements RoomDAO {
         $push: {
           roundHistory: {
             roundNumber: currentRound,
-            options: room.options,
             eliminatedOptions: eliminatedOptions,
-            votes: room.votes,
-            sortedOptions: completeOptions,
-            sortedTotals: completeTotals,
-            timestamp: Date.now()
+            result: result
           }
         }
       }

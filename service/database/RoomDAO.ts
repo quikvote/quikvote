@@ -6,6 +6,7 @@ export interface RoomDAO {
   createRoom: (creatorUsername: string, config: VoteConfig) => Promise<WithId<Room>>,
   getRoomByCode: (roomCode: string) => Promise<WithId<Room> | null>,
   getRoomById: (roomId: string) => Promise<WithId<Room> | null>,
+  getRoomByResultId: (resultId: string) => Promise<WithId<Room> | null>,
   addParticipantToRoom: (roomCode: string, username: string) => Promise<boolean>,
   addOptionToRoom: (roomId: string, option: string) => Promise<boolean>,
   removeOptionFromRoom: (roomId: string, option: string) => Promise<boolean>,

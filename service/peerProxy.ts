@@ -6,7 +6,7 @@ import { DaoFactory } from "./factory/DaoFactory";
 import { v4 as uuidv4 } from 'uuid';
 import { IncomingMessage, Server } from 'http';
 import internal from 'stream';
-import { Result, Room, User } from './model';
+import { OptionResult, Result, Room, User } from './model';
 import { aggregationMap, Vote } from './model/voteTypes';
 import { WithId } from 'mongodb';
 
@@ -290,10 +290,7 @@ class PeerProxy {
               roundNumber: currentRound + 1,
               remainingOptions: roundResult.remainingOptions,
               eliminatedOptions: roundResult.eliminatedOptions,
-              roundResults: {
-                sortedOptions: latestRound.sortedOptions,
-                sortedTotals: latestRound.sortedTotals
-              }
+              roundResults: latestRound.result
             }));
           });
         } else {
@@ -303,10 +300,7 @@ class PeerProxy {
               type: 'round_completed',
               roundNumber: currentRound,
               eliminatedOptions: roundResult.eliminatedOptions,
-              roundResults: {
-                sortedOptions: latestRound.sortedOptions,
-                sortedTotals: latestRound.sortedTotals
-              }
+              roundResults: latestRound.result
             }));
           });
         }
@@ -436,10 +430,7 @@ class PeerProxy {
         roundNumber: (room.currentRound || 1) + 1,
         remainingOptions: remainingOptions,
         eliminatedOptions: eliminatedOptions,
-        roundResults: {
-          sortedOptions: latestRound.sortedOptions,
-          sortedTotals: latestRound.sortedTotals
-        }
+        roundResults: latestRound.result
       }));
     });
   }
@@ -447,7 +438,7 @@ class PeerProxy {
   private async closeRoom(room: WithId<Room>): Promise<WithId<Result>> {
     const aggregator = aggregationMap[room.config.type]
     const result = aggregator(room)
-    const storedResult = await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals, result.sortedUsers, result.sortedUsersVotes);
+    const storedResult = await this.historyDAO.createResult(result.owner, result.options);
 
     await this.roomDAO.closeRoom(room._id.toHexString(), storedResult._id.toHexString());
     return storedResult

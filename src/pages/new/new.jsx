@@ -8,6 +8,7 @@ const defaultConfig = {
     numRunnerUps: -1,
     showNumVotes: true,
     showWhoVoted: false,
+    resultDisplayType: 'bar',
 
     // Score vote specific options
     minVotesPerOption: 0,
@@ -38,6 +39,7 @@ export default function New() {
       numRunnerUps: config.options.numRunnerUps,
       showNumVotes: config.options.showNumVotes,
       showWhoVoted: config.options.showWhoVoted,
+      resultDisplayType: config.options.resultDisplayType,
       enableRound: config.options.enableRound,
       eliminationCount: config.options.eliminationCount,
       maxRounds: config.options.maxRounds,
@@ -287,6 +289,53 @@ export default function New() {
                   <option value="4">Winner + 4</option>
                   <option value="5">Winner + 5</option>
                 </select>
+              </div>
+
+              <div className="option-group">
+                <h3>Result Display Type</h3>
+                <div className="vote-type-selector">
+                  <div
+                      className={`vote-type-option ${config.options.resultDisplayType === 'bar' ? 'vote-type-option--selected' : ''}`}
+                      onClick={() => handleCommonOptionChange('resultDisplayType', 'bar')}
+                  >
+                    <div className="vote-type-icon">
+                      <span className="material-symbols-outlined">bar_chart</span>
+                    </div>
+                    <div className="vote-type-label">Bar Chart</div>
+                  </div>
+
+                  <div
+                      className={`vote-type-option ${config.options.resultDisplayType === 'pie' ? 'vote-type-option--selected' : ''}`}
+                      onClick={() => handleCommonOptionChange('resultDisplayType', 'pie')}
+                  >
+                    <div className="vote-type-icon">
+                      <span className="material-symbols-outlined">pie_chart</span>
+                    </div>
+                    <div className="vote-type-label">Pie Chart</div>
+                  </div>
+
+                  <div
+                      className={`vote-type-option ${config.options.resultDisplayType === 'podium' ? 'vote-type-option--selected' : ''}`}
+                      onClick={() => handleCommonOptionChange('resultDisplayType', 'podium')}
+                  >
+                    <div className="vote-type-icon">
+                      <span className="material-symbols-outlined">emoji_events</span>
+                    </div>
+                    <div className="vote-type-label">Podium</div>
+                  </div>
+                </div>
+
+                <div className="result-type-description">
+                  {config.options.resultDisplayType === 'bar' && (
+                    <p>Bar Chart displays results as a horizontal bar chart, showing the relative rankings clearly.</p>
+                  )}
+                  {config.options.resultDisplayType === 'pie' && (
+                    <p>Pie Chart displays results as a circular chart, showing each option as a proportion of the total votes.</p>
+                  )}
+                  {config.options.resultDisplayType === 'podium' && (
+                    <p>Podium displays the top three options on a winner's podium, emphasizing the best performers.</p>
+                  )}
+                </div>
               </div>
 
               <div className="checkbox-row">

@@ -168,14 +168,17 @@
   text-align: center;
 }
 
-.vote-type-description {
+.vote-type-description,
+.result-type-description {
   background-color: white;
   padding: 12px;
   border-radius: 6px;
   border-left: 4px solid #007bff;
+  margin-top: 15px;
 }
 
-.vote-type-description p {
+.vote-type-description p,
+.result-type-description p {
   margin: 0;
   line-height: 1.5;
   color: #495057;
