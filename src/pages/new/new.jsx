@@ -9,6 +9,7 @@ const defaultConfig = {
     showNumVotes: true,
     showWhoVoted: false,
     resultDisplayType: 'bar',
+    allowNewOptions: 'owner',
 
     // Score vote specific options
     minVotesPerOption: 0,
@@ -40,6 +41,7 @@ export default function New() {
       showNumVotes: config.options.showNumVotes,
       showWhoVoted: config.options.showWhoVoted,
       resultDisplayType: config.options.resultDisplayType,
+      allowNewOptions: config.options.allowNewOptions,
       enableRound: config.options.enableRound,
       eliminationCount: config.options.eliminationCount,
       maxRounds: config.options.maxRounds,
@@ -268,12 +270,83 @@ export default function New() {
                   <div className="vote-type-label">Quadratic</div>
                 </div>
               </div>
+              
+              <div className="vote-type-description">
+                {voteType === 'score' && (
+                    <p>Score voting allows participants to rate each option on a scale from {config.options.minVotesPerOption} to {config.options.maxVotesPerOption}.</p>
+                )}
+                {voteType === 'rank' && (
+                    <p>Rank voting allows participants to drag and reorder options based on their preference. The highest ranked option gets the most points.</p>
+                )}
+                {voteType === 'topChoices' && (
+                    <p>Top Choices voting allows participants to select their top {config.options.numberOfChoices} choices in order of preference.</p>
+                )}
+                {voteType === 'approval' && (
+                    <p>Approval voting allows participants to select all options they approve of. Each approved option receives one point.</p>
+                )}
+                {voteType === 'quadratic' && (
+                    <p>Quadratic voting gives participants {config.options.creditBudget} credits to allocate. The cost of votes increases quadratically (1 vote = 1 credit, 2 votes = 4 credits, etc.).</p>
+                )}
+
+                {config.options.enableRound && (
+                    <div className="round-description">
+                      <p className="round-note">Multi-round voting is enabled. After each round, the lowest-scoring options will be eliminated, and participants will vote again on the remaining options.</p>
+                    </div>
+                )}
+              </div>
             </div>
 
             {renderTypeSpecificOptions()}
 
             <div className="option-group">
-              <h3>Common Options</h3>
+              <h3>Option Management</h3>
+              <div className="vote-type-selector">
+                <div
+                    className={`vote-type-option ${config.options.allowNewOptions === 'owner' ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('allowNewOptions', 'owner')}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">person</span>
+                  </div>
+                  <div className="vote-type-label">Owner Only</div>
+                </div>
+
+                <div
+                    className={`vote-type-option ${config.options.allowNewOptions === 'everyone' ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('allowNewOptions', 'everyone')}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">groups</span>
+                  </div>
+                  <div className="vote-type-label">Everyone</div>
+                </div>
+
+                <div
+                    className={`vote-type-option ${config.options.allowNewOptions === 'votesPerPerson' ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('allowNewOptions', 'votesPerPerson')}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">add_circle</span>
+                  </div>
+                  <div className="vote-type-label">Votes Per Person</div>
+                </div>
+              </div>
+              
+              <div className="option-description">
+                {config.options.allowNewOptions === 'owner' && (
+                  <p>Only the room creator can add or modify options in the vote.</p>
+                )}
+                {config.options.allowNewOptions === 'everyone' && (
+                  <p>All participants can add new options to the vote.</p>
+                )}
+                {config.options.allowNewOptions === 'votesPerPerson' && (
+                  <p>Each participant can add a limited number of options based on their vote allocation.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="option-group">
+              <h3>Results Options</h3>
               <div className="option-row">
                 <label htmlFor="numRunnerUps">Number of Runner-ups to Show:</label>
                 <select
@@ -290,99 +363,89 @@ export default function New() {
                   <option value="5">Winner + 5</option>
                 </select>
               </div>
-
-              <div className="option-group">
-                <h3>Result Display Type</h3>
-                <div className="vote-type-selector">
-                  <div
-                      className={`vote-type-option ${config.options.resultDisplayType === 'bar' ? 'vote-type-option--selected' : ''}`}
-                      onClick={() => handleCommonOptionChange('resultDisplayType', 'bar')}
-                  >
-                    <div className="vote-type-icon">
-                      <span className="material-symbols-outlined">bar_chart</span>
-                    </div>
-                    <div className="vote-type-label">Bar Chart</div>
+              
+              <h4>Result Display Type</h4>
+              <div className="vote-type-selector">
+                <div
+                    className={`vote-type-option ${config.options.resultDisplayType === 'bar' ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('resultDisplayType', 'bar')}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">bar_chart</span>
                   </div>
-
-                  <div
-                      className={`vote-type-option ${config.options.resultDisplayType === 'pie' ? 'vote-type-option--selected' : ''}`}
-                      onClick={() => handleCommonOptionChange('resultDisplayType', 'pie')}
-                  >
-                    <div className="vote-type-icon">
-                      <span className="material-symbols-outlined">pie_chart</span>
-                    </div>
-                    <div className="vote-type-label">Pie Chart</div>
-                  </div>
-
-                  <div
-                      className={`vote-type-option ${config.options.resultDisplayType === 'podium' ? 'vote-type-option--selected' : ''}`}
-                      onClick={() => handleCommonOptionChange('resultDisplayType', 'podium')}
-                  >
-                    <div className="vote-type-icon">
-                      <span className="material-symbols-outlined">emoji_events</span>
-                    </div>
-                    <div className="vote-type-label">Podium</div>
-                  </div>
+                  <div className="vote-type-label">Bar Chart</div>
                 </div>
 
-                <div className="result-type-description">
-                  {config.options.resultDisplayType === 'bar' && (
-                    <p>Bar Chart displays results as a horizontal bar chart, showing the relative rankings clearly.</p>
-                  )}
-                  {config.options.resultDisplayType === 'pie' && (
-                    <p>Pie Chart displays results as a circular chart, showing each option as a proportion of the total votes.</p>
-                  )}
-                  {config.options.resultDisplayType === 'podium' && (
-                    <p>Podium displays the top three options on a winner's podium, emphasizing the best performers.</p>
-                  )}
+                <div
+                    className={`vote-type-option ${config.options.resultDisplayType === 'pie' ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('resultDisplayType', 'pie')}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">pie_chart</span>
+                  </div>
+                  <div className="vote-type-label">Pie Chart</div>
+                </div>
+
+                <div
+                    className={`vote-type-option ${config.options.resultDisplayType === 'podium' ? 'vote-type-option--selected' : ''}`}
+                    onClick={() => handleCommonOptionChange('resultDisplayType', 'podium')}
+                >
+                  <div className="vote-type-icon">
+                    <span className="material-symbols-outlined">emoji_events</span>
+                  </div>
+                  <div className="vote-type-label">Podium</div>
                 </div>
               </div>
 
-              <div className="checkbox-row">
-                <label>
+              <div className="result-type-description">
+                {config.options.resultDisplayType === 'bar' && (
+                  <p>Bar Chart displays results as a horizontal bar chart, showing the relative rankings clearly.</p>
+                )}
+                {config.options.resultDisplayType === 'pie' && (
+                  <p>Pie Chart displays results as a circular chart, showing each option as a proportion of the total votes.</p>
+                )}
+                {config.options.resultDisplayType === 'podium' && (
+                  <p>Podium displays the top three options on a winner&apos;s podium, emphasizing the best performers.</p>
+                )}
+              </div>
+
+              <div className="switch-row">
+                <label className="switch">
                   <input
                       type="checkbox"
                       checked={config.options.showNumVotes}
                       onChange={(e) => handleCommonOptionChange('showNumVotes', e.target.checked)}
                   />
-                  Show Number of Votes
+                  <span className="slider"></span>
                 </label>
+                <label>Show Number of Votes</label>
               </div>
 
-              <div className="checkbox-row">
-                <label>
+              <div className="switch-row">
+                <label className="switch">
                   <input
                       type="checkbox"
                       checked={config.options.showWhoVoted}
                       onChange={(e) => handleCommonOptionChange('showWhoVoted', e.target.checked)}
                   />
-                  Show Who Voted
+                  <span className="slider"></span>
                 </label>
-              </div>
-
-              <div className="checkbox-row">
-                <label>
-                  <input
-                      type="checkbox"
-                      checked={config.options.allowNewOptions}
-                      onChange={(e) => handleCommonOptionChange('allowNewOptions', e.target.checked)}
-                  />
-                  Allow Room Participants to Add Options
-                </label>
+                <label>Show Who Voted</label>
               </div>
             </div>
 
             <div className="option-group">
               <h3>Multi-Round Options</h3>
-              <div className="checkbox-row">
-                <label>
+              <div className="switch-row">
+                <label className="switch">
                   <input
                       type="checkbox"
                       checked={config.options.enableRound}
                       onChange={(e) => handleCommonOptionChange('enableRound', e.target.checked)}
                   />
-                  Enable Multi-round Voting
+                  <span className="slider"></span>
                 </label>
+                <label>Enable Multi-round Voting</label>
               </div>
 
               {config.options.enableRound && (
@@ -411,15 +474,16 @@ export default function New() {
                       />
                     </div>
 
-                    <div className="checkbox-row">
-                      <label>
+                    <div className="switch-row">
+                      <label className="switch">
                         <input
                             type="checkbox"
                             checked={config.options.autoAdvance}
                             onChange={(e) => handleCommonOptionChange('autoAdvance', e.target.checked)}
                         />
-                        Automatically Advance to Next Round
+                        <span className="slider"></span>
                       </label>
+                      <label>Automatically Advance to Next Round</label>
                     </div>
 
                     <div className="round-info">
@@ -434,32 +498,6 @@ export default function New() {
               )}
             </div>
 
-            <div className="option-group">
-              <h3>Vote Type Description</h3>
-              <div className="vote-type-description">
-                {voteType === 'score' && (
-                    <p>Score voting allows participants to rate each option on a scale from {config.options.minVotesPerOption} to {config.options.maxVotesPerOption}.</p>
-                )}
-                {voteType === 'rank' && (
-                    <p>Rank voting allows participants to drag and reorder options based on their preference. The highest ranked option gets the most points.</p>
-                )}
-                {voteType === 'topChoices' && (
-                    <p>Top Choices voting allows participants to select their top {config.options.numberOfChoices} choices in order of preference.</p>
-                )}
-                {voteType === 'approval' && (
-                    <p>Approval voting allows participants to select all options they approve of. Each approved option receives one point.</p>
-                )}
-                {voteType === 'quadratic' && (
-                    <p>Quadratic voting gives participants {config.options.creditBudget} credits to allocate. The cost of votes increases quadratically (1 vote = 1 credit, 2 votes = 4 credits, etc.).</p>
-                )}
-
-                {config.options.enableRound && (
-                    <div className="round-description">
-                      <p className="round-note">Multi-round voting is enabled. After each round, the lowest-scoring options will be eliminated, and participants will vote again on the remaining options.</p>
-                    </div>
-                )}
-              </div>
-            </div>
           </div>
 
           <button className="main__button" onClick={createRoom}>Begin QuikVote</button>
