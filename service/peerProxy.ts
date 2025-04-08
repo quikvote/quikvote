@@ -20,7 +20,7 @@ interface Connection {
 }
 
 interface WSEvent {
-  type: 'new_option' | 'remove_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round' | 'alert'
+  type: 'new_option' | 'remove_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round' | 'alert' | 'end_preliminary_round'
 }
 
 interface OptionEvent extends WSEvent {
@@ -42,6 +42,10 @@ interface CloseRoomEvent extends WSEvent {
 }
 
 interface StartNextRoundEvent extends WSEvent {
+  room: string
+}
+
+interface EndPreliminaryRoundEvent extends WSEvent {
   room: string
 }
 
@@ -119,6 +123,8 @@ class PeerProxy {
           this.handleUnlockVote(JSON.parse(dataString) as UnlockVoteEvent, connection, connections);
         } else if (dataParsed.type == 'start_next_round') {
           this.handleStartNextRound(JSON.parse(dataString) as StartNextRoundEvent, connection, connections);
+        } else if (dataParsed.type == 'end_preliminary_round') {
+          this.handleEndPreliminaryRound(JSON.parse(dataString) as EndPreliminaryRoundEvent, connection, connections);
         }
       });
 
@@ -155,9 +161,31 @@ class PeerProxy {
       console.warn(`no room with id ${event.room}`)
       return
     }
-    if (room.state !== 'open') {
+    if (room.state !== 'open' && room.state !== 'preliminary') {
       console.warn('room is closed')
       return
+    }
+    
+    // Check if this room had a preliminary round and is now in the open state
+    if (room.state === 'open' && room.config.options.enablePreliminaryRound) {
+      // After preliminary round, only owner can add options
+      if (connection.user !== room.owner) {
+        connection.ws.send(JSON.stringify({
+          type: 'alert',
+          message: "Options can only be added by the room owner after the preliminary round has ended.",
+          alertType: 'warning'
+        }));
+        return;
+      }
+    } 
+    // For rooms without preliminary round, check normal option settings
+    else if (room.config.options.allowNewOptions === 'owner' && connection.user !== room.owner) {
+      connection.ws.send(JSON.stringify({
+        type: 'alert',
+        message: "Only the room owner can add options.",
+        alertType: 'warning'
+      }));
+      return;
     }
     if (!room.participants.includes(connection.user)) {
       console.warn(`room does not include user ${connection.user}`)
@@ -271,6 +299,16 @@ class PeerProxy {
       return
     }
 
+    if (room.state === 'preliminary') {
+      console.warn('room is in preliminary state, voting not allowed')
+      connection.ws.send(JSON.stringify({
+        type: 'alert',
+        message: "Voting is not allowed during the preliminary round. The room owner must end the preliminary round first.",
+        alertType: 'warning'
+      }));
+      return
+    }
+    
     if (room.state !== 'open') {
       console.warn('room is closed')
       return
@@ -431,6 +469,40 @@ class PeerProxy {
         isFinalResult: true
       }));
     });
+  }
+
+  public async handleEndPreliminaryRound(event: EndPreliminaryRoundEvent, connection: Connection, connections: Connection[]) {
+    const user = connection.user;
+    const roomId = event.room;
+    const room = await this.roomDAO.getRoomById(roomId);
+
+    if (!room) {
+      console.warn(`no room with id ${event.room}`);
+      return;
+    }
+
+    if (room.state !== 'preliminary') {
+      console.warn('room is not in preliminary state');
+      return;
+    }
+
+    if (room.owner !== user) {
+      console.warn('user is not owner of room');
+      return;
+    }
+
+    // End the preliminary round and change state to 'open'
+    const success = await this.roomDAO.endPreliminaryRound(roomId);
+    
+    if (success) {
+      // Notify all participants that voting can now begin
+      connections.filter(c => room.participants.includes(c.user)).forEach(c => {
+        c.ws.send(JSON.stringify({
+          type: 'preliminary_round_ended',
+          room: roomId
+        }));
+      });
+    }
   }
 
   public async handleStartNextRound(event: StartNextRoundEvent, connection: Connection, connections: Connection[]) {

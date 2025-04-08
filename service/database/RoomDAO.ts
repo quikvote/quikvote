@@ -15,6 +15,9 @@ export interface RoomDAO {
   closeRoom: (roomId: string, resultId: string) => Promise<boolean>,
   deleteRoom: (roomId: string) => Promise<boolean>,
 
+  // Preliminary round method
+  endPreliminaryRound: (roomId: string) => Promise<boolean>,
+  
   // Multi-round voting methods
   completeRound: (roomId: string) => Promise<{ eliminatedOptions: string[], remainingOptions: string[], roundNumber: number } | null>,
   advanceToNextRound: (roomId: string, remainingOptions: Option[]) => Promise<boolean>,

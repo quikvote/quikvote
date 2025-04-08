@@ -15,6 +15,9 @@ const defaultConfig = {
     // Score vote specific options
     minVotesPerOption: 0,
     maxVotesPerOption: 10,
+    
+    // Preliminary round option
+    enablePreliminaryRound: false,
 
     // Round options
     enableRound: false,
@@ -358,6 +361,26 @@ export default function New() {
                   </>
                 )}
               </div>
+              
+              <div className="switch-row" style={{marginTop: '15px'}}>
+                <label className="switch">
+                  <input
+                      type="checkbox"
+                      checked={config.options.enablePreliminaryRound}
+                      onChange={(e) => handleCommonOptionChange('enablePreliminaryRound', e.target.checked)}
+                  />
+                  <span className="slider"></span>
+                </label>
+                <label>Enable Preliminary Option Round</label>
+              </div>
+              
+              {config.options.enablePreliminaryRound && (
+                <div className="option-description" style={{marginTop: '10px'}}>
+                  <p>A preliminary round will be activated when the room is created, allowing participants to add options based on the settings above. During this phase, voting is disabled.</p>
+                  <p>After the preliminary round ends, only the room owner will be able to add new options, regardless of the settings above.</p>
+                  <p>Only the room owner can end the preliminary round and start the voting phase.</p>
+                </div>
+              )}
             </div>
 
             <div className="option-group">

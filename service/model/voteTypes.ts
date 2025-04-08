@@ -48,6 +48,9 @@ export interface BaseModOptions { // options that apply to all vote types (eg. r
   allowNewOptions: string      // 'owner', 'everyone', or 'votesPerPerson'
   optionsPerPerson?: number    // Number of options allowed per person when allowNewOptions is 'votesPerPerson'
   resultDisplayType: ResultDisplayType  // Type of result display (bar, pie, podium)
+  
+  // Preliminary round option for adding options before voting starts
+  enablePreliminaryRound?: boolean  // Whether to start with a preliminary round for adding options
 
   // Multi-round voting options
   enableRound?: boolean        // Whether to enable multi-round voting

@@ -17,7 +17,7 @@ class RoomMongoDB implements RoomDAO {
       participants: [creatorUsername],
       options: [], // Empty array of Option objects
       votes: [],
-      state: 'open',
+      state: config.options?.enablePreliminaryRound ? 'preliminary' : 'open',
       resultId: '',
       config
     }
@@ -50,7 +50,7 @@ class RoomMongoDB implements RoomDAO {
 
   public async addParticipantToRoom(roomCode: string, username: string): Promise<boolean> {
     const result = await this.roomsCollection.updateOne(
-      { code: roomCode, state: 'open' },
+      { code: roomCode, state: { $in: ['open', 'preliminary'] } },
       {
         $addToSet: {
           participants: username
@@ -75,7 +75,7 @@ class RoomMongoDB implements RoomDAO {
     };
     
     const result = await this.roomsCollection.updateOne(
-      { _id: new ObjectId(roomId), state: 'open' },
+      { _id: new ObjectId(roomId), state: { $in: ['open', 'preliminary'] } },
       updateQuery
     );
     
@@ -88,7 +88,7 @@ class RoomMongoDB implements RoomDAO {
     
     // Always remove by text field with Option format
     const result = await this.roomsCollection.updateOne(
-      { _id: new ObjectId(roomId) },
+      { _id: new ObjectId(roomId), state: { $in: ['open', 'preliminary'] } },
       {
         $pull: { 
           options: { text: option }
@@ -100,8 +100,18 @@ class RoomMongoDB implements RoomDAO {
   }
 
   public async submitUserVotes(roomId: string, username: string, vote: Vote): Promise<boolean> {
+    // First, verify the room is not in preliminary state
+    const room = await this.getRoomById(roomId);
+    if (!room || room.state === 'preliminary') {
+      return false;
+    }
+    
     const result = await this.roomsCollection.updateOne(
-      { _id: new ObjectId(roomId), "votes.username": { $ne: username } },
+      { 
+        _id: new ObjectId(roomId), 
+        state: 'open',  // Only allow voting in open rooms
+        "votes.username": { $ne: username } 
+      },
       {
         $push: {
           votes: {
@@ -116,7 +126,10 @@ class RoomMongoDB implements RoomDAO {
 
   public async removeUserVotes(roomId: string, username: string): Promise<void> {
     await this.roomsCollection.updateOne(
-      { _id: new ObjectId(roomId) },
+      { 
+        _id: new ObjectId(roomId),
+        state: { $in: ['open', 'preliminary'] } 
+      },
       {
         $pull: {
           votes: {
@@ -143,6 +156,21 @@ class RoomMongoDB implements RoomDAO {
   public async deleteRoom(roomId: string): Promise<boolean> {
     const result = await this.roomsCollection.deleteOne({ _id: new ObjectId(roomId) })
     return result.acknowledged && result.deletedCount == 1
+  }
+  
+  /**
+   * Ends the preliminary round and changes the room state to 'open' to allow voting
+   */
+  public async endPreliminaryRound(roomId: string): Promise<boolean> {
+    const result = await this.roomsCollection.updateOne(
+      { _id: new ObjectId(roomId), state: 'preliminary' },
+      {
+        $set: {
+          state: 'open'
+        }
+      }
+    )
+    return result.acknowledged && result.matchedCount === 1
   }
 
   /**

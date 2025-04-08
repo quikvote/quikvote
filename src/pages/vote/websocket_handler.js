@@ -56,6 +56,10 @@ class WebSocketHandler {
   startNextRound(room) {
     this.socket.send(JSON.stringify({ type: "start_next_round", room }));
   }
+  
+  endPreliminaryRound(room) {
+    this.socket.send(JSON.stringify({ type: "end_preliminary_round", room }));
+  }
 
   addHandler(handler) {
     this.handlers.push(handler);

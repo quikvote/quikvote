@@ -20,7 +20,7 @@ export interface Option {
 export interface Room {
   code: string
   owner: string
-  state: 'open' | 'closed'
+  state: 'preliminary' | 'open' | 'closed'
   participants: string[]
   options: Option[]  // Always an array of Option objects
   votes: UserVote[]
