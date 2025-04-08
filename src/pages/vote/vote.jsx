@@ -55,7 +55,13 @@ export default function Vote() {
   const [resultsId, setResultsId] = useState('')
   const [code, setCode] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  
+  // Alert state
+  const [alert, setAlert] = useState({ show: false, message: '', type: 'info' })
 
+  // Room state
+  const [roomState, setRoomState] = useState('open')
+  
   // Multi-round specific state
   const [currentRound, setCurrentRound] = useState(1)
   const [maxRounds, setMaxRounds] = useState(1)
@@ -86,6 +92,7 @@ export default function Vote() {
           setVote(body.currentVote)
         }
         setResultsId(body.resultId)
+        setRoomState(body.state || 'open')
 
         // Initialize round state
         if (body.config?.options?.enableRound) {
@@ -101,8 +108,8 @@ export default function Vote() {
 
             // Store results from the most recent round
             const latestRound = body.roundHistory[body.roundHistory.length - 1];
-            if (latestRound.sortedOptions) {
-              setRoundResults(latestRound.sortedOptions);
+            if (latestRound.result) {
+              setRoundResults(latestRound.result);
             }
           }
         }
@@ -154,7 +161,8 @@ export default function Vote() {
     } else if (event.type == 'next_round_started') {
       // Reset state for next round
       setCurrentRound(event.roundNumber)
-      setOptions(event.remainingOptions)
+      // Handle remainingOptions as Option objects
+      setOptions(Array.isArray(event.remainingOptions) ? event.remainingOptions : [])
       setLockedIn(false)
       setVote({})
       setResultsId('')
@@ -169,6 +177,42 @@ export default function Vote() {
       if (event.eliminatedOptions) {
         setEliminatedOptions(prev => [...prev, ...event.eliminatedOptions])
       }
+    } else if (event.type == 'round_completed') {
+      // Handle round completion event (when round is completed but not yet advanced)
+      setRoundComplete(true)
+      setWaitingForNextRound(true)
+      
+      if (event.eliminatedOptions) {
+        setEliminatedOptions(prev => [...prev, ...event.eliminatedOptions])
+      }
+      
+      if (event.roundResults) {
+        setRoundResults(event.roundResults)
+      }
+    } else if (event.type == 'preliminary_round_ended') {
+      // Update room state when preliminary round ends
+      setRoomState('open');
+      setAlert({
+        show: true,
+        message: "The preliminary round has ended. Voting is now open!",
+        type: 'info'
+      });
+      
+      setTimeout(() => {
+        setAlert(prev => ({ ...prev, show: false }))
+      }, 5000);
+    } else if (event.type == 'alert') {
+      // Show the alert message
+      setAlert({ 
+        show: true, 
+        message: event.message, 
+        type: event.alertType || 'info' 
+      })
+      
+      // Automatically hide the alert after 5 seconds
+      setTimeout(() => {
+        setAlert(prev => ({ ...prev, show: false }))
+      }, 5000)
     }
   }
 
@@ -177,8 +221,8 @@ export default function Vote() {
     scrollDiv.scrollTop = scrollDiv.scrollHeight
   }
 
-  async function addOption(opt) {
-    WSHandler.addOption(id, opt)
+  async function addOption(optionText) {
+    WSHandler.addOption(id, optionText)
   }
 
   function unlockVotes() {
@@ -187,6 +231,10 @@ export default function Vote() {
 
   function startNextRound() {
     WSHandler.startNextRound(id)
+  }
+  
+  function endPreliminaryRound() {
+    WSHandler.endPreliminaryRound(id)
   }
 
   function renderOptions() {
@@ -200,6 +248,18 @@ export default function Vote() {
   }
 
   function renderRoundIndicator() {
+    // Show preliminary round indicator
+    if (roomState === 'preliminary') {
+      return (
+        <div className="round-indicator">
+          <span className="round-badge preliminary-badge">Preliminary Round</span>
+          <span className="round-status">
+            Add options before voting begins
+          </span>
+        </div>
+      );
+    }
+    
     if (!roundEnabled) return null;
 
     return (
@@ -213,10 +273,10 @@ export default function Vote() {
   }
 
   function renderPreviousRoundResults() {
-    if (!roundEnabled || currentRound === 1 || !roundResults.sortedOptions) return null;
+    if (!roundEnabled || currentRound === 1 || !roundResults || !roundResults.options) return null;
 
     // Show top options from previous round results
-    const topOptions = roundResults.sortedOptions.slice(0, 3);
+    const topOptions = roundResults.options.slice(0, 3).map(opt => opt.name);
 
     // Show eliminated options
     const latestEliminated = eliminatedOptions.slice(-config.options.eliminationCount);
@@ -229,8 +289,8 @@ export default function Vote() {
 
         <div className="eliminated-options">
           <p>Eliminated options:</p>
-          {latestEliminated.map((option, index) => (
-            <span key={index} className="eliminated-option">{option}</span>
+          {latestEliminated.map((optionText, index) => (
+            <span key={index} className="eliminated-option">{optionText}</span>
           ))}
         </div>
       </div>
@@ -238,6 +298,27 @@ export default function Vote() {
   }
 
   function renderButton() {
+    // Check if we're in preliminary round mode
+    if (roomState === 'preliminary') {
+      if (isRoomOwner) {
+        return (
+          <button
+            className="main__button"
+            onClick={endPreliminaryRound}
+          >
+            End Preliminary Round & Begin Voting
+            <span className="material-symbols-outlined" style={{marginLeft: '8px'}}>arrow_forward</span>
+          </button>
+        );
+      } else {
+        return (
+          <div className="preliminary-message">
+            <p>This is a preliminary round for adding options. Voting will begin when the room owner ends this phase.</p>
+          </div>
+        );
+      }
+    }
+    
     // If we're waiting for the next round to start
     if (waitingForNextRound) {
       if (isRoomOwner && !config.options?.autoAdvance) {
@@ -262,13 +343,22 @@ export default function Vote() {
     }
 
     // Standard vote buttons
-    const lockInButton = (<button
-      className="main__button"
-      onClick={() => {
-        setLockedIn(true)
-        WSHandler.lockIn(id, { type: config.type, ...vote })
-      }}
-    >Lock in vote</button>)
+    const lockInButton = roomState === 'preliminary' ? (
+      <button
+        className="main__button main__button--disabled"
+        disabled
+      >
+        Voting disabled during preliminary round
+      </button>
+    ) : (
+      <button
+        className="main__button"
+        onClick={() => {
+          setLockedIn(true)
+          WSHandler.lockIn(id, { type: config.type, ...vote })
+        }}
+      >Lock in vote</button>
+    )
 
     const lockedInButton = (
       <div className="button-group">
@@ -341,20 +431,62 @@ export default function Vote() {
     return viewResultsButton
   }
 
+  // Alert component
+  const AlertNotification = () => {
+    if (!alert.show) return null;
+    
+    const alertClasses = {
+      info: 'alert alert--info',
+      warning: 'alert alert--warning',
+      error: 'alert alert--error'
+    };
+    
+    return (
+      <div className={alertClasses[alert.type] || alertClasses.info}>
+        <span className="alert__message">{alert.message}</span>
+        <button 
+          className="alert__close" 
+          onClick={() => setAlert(prev => ({ ...prev, show: false }))}
+        >
+          <span className="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <>
       <header className="header header--room-code" onClick={() => setModalOpen(true)}>
         <h3>Share this QuikVote!</h3>
         <span className="material-symbols-outlined">ios_share</span>
       </header>
+      {alert.show && <AlertNotification />}
       <main className="main" id="main-element">
         {renderRoundIndicator()}
         {renderPreviousRoundResults()}
 
+        {roomState === 'preliminary' && (
+          <div className="preliminary-instructions">
+            <h3>Preliminary Round</h3>
+            <p>This is the option gathering phase. All participants can add options based on the room settings.</p>
+            <p>Voting is disabled during this phase. When the room owner ends the preliminary round, voting will begin and only the room owner will be able to add new options.</p>
+          </div>
+        )}
+        
         <ul className="vote-options">
           {renderOptions()}
         </ul>
-        {config.options && (config.options.allowNewOptions || isRoomOwner) &&
+        {/* Determine whether to show add option based on room state and config */}
+        {((roomState === 'preliminary' && config.options && 
+             (config.options.allowNewOptions === 'everyone' || 
+              config.options.allowNewOptions === 'votesPerPerson' || 
+              isRoomOwner)) ||
+           (roomState === 'open' && 
+             ((config.options?.enablePreliminaryRound && isRoomOwner) || // After preliminary round, only owner can add
+              (!config.options?.enablePreliminaryRound && // If no preliminary round, follow normal settings
+                (config.options?.allowNewOptions === 'everyone' || 
+                 config.options?.allowNewOptions === 'votesPerPerson' || 
+                 isRoomOwner))))) &&
           (<AddOption onSubmit={addOption} disabled={lockedIn || waitingForNextRound} />)
         }
         {renderButton()}

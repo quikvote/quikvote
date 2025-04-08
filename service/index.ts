@@ -158,8 +158,8 @@ async function main() {
       return
     }
 
-    if (room.state !== 'open') {
-      res.status(409).send({ msg: 'Room is not open' })
+    if (room.state !== 'open' && room.state !== 'preliminary') {
+      res.status(409).send({ msg: 'Room is not open or in preliminary state' })
       return
     }
 
@@ -200,7 +200,29 @@ async function main() {
       return
     }
 
-    res.status(200).send({ results: result.sortedOptions, totals: result.sortedTotals, users: result.sortedUsers, usersVotes: result.sortedUsersVotes })
+    const room = await roomDAO.getRoomByResultId(resultsId);
+    const config = room ? room.config : null;
+
+    // Add nickname information to all voters
+    const optionsWithNicknames = await Promise.all(result.options.map(async (option) => {
+      const votersWithNicknames = await Promise.all(option.voters.map(async (voter) => {
+        const user = await userDAO.getUser(voter.username);
+        return {
+          ...voter,
+          nickname: user?.nickname || null
+        };
+      }));
+
+      return {
+        ...option,
+        voters: votersWithNicknames
+      };
+    }));
+
+    res.status(200).send({ 
+      options: optionsWithNicknames,
+      config: config
+    });
   })
 
   secureApiRouter.get('/history', async (req: Request, res: Response) => {

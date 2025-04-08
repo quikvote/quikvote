@@ -21,7 +21,7 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
             // Initialize with zero votes for each option
             const initialVotes = {};
             options.forEach(option => {
-                initialVotes[option] = 0;
+                initialVotes[option.text] = 0;
             });
             setVote({
                 votes: initialVotes,
@@ -31,10 +31,10 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
         } else {            
             // Filter out deleted options from votes and costs
             const filteredVotes = Object.fromEntries(
-                Object.entries(vote.votes || {}).filter(([option]) => options.includes(option))
+                Object.entries(vote.votes || {}).filter(([optionText]) => options.some(opt => opt.text === optionText))
             );
             const filteredCosts = Object.fromEntries(
-                Object.entries(vote.costs || {}).filter(([option]) => options.includes(option))
+                Object.entries(vote.costs || {}).filter(([optionText]) => options.some(opt => opt.text === optionText))
             );
 
             setVote({
@@ -51,10 +51,10 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
         }
     }, [options, creditBudget]);
 
-    const incrementVote = (option) => {
+    const incrementVote = (optionText) => {
         if (disabled) return;
 
-        const currentVotes = vote.votes[option] || 0;
+        const currentVotes = vote.votes[optionText] || 0;
         const newVotes = currentVotes + 1;
 
         // Calculate the additional cost for increasing the vote
@@ -67,12 +67,12 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
 
         // Update votes and costs
         const newCosts = { ...(vote.costs || {}) };
-        newCosts[option] = calculateCost(newVotes);
+        newCosts[optionText] = calculateCost(newVotes);
 
         setVote({
             votes: {
                 ...vote.votes,
-                [option]: newVotes
+                [optionText]: newVotes
             },
             costs: newCosts
         });
@@ -80,10 +80,10 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
         setRemainingCredits(prev => prev - additionalCost);
     };
 
-    const decrementVote = (option) => {
+    const decrementVote = (optionText) => {
         if (disabled) return;
 
-        const currentVotes = vote.votes[option] || 0;
+        const currentVotes = vote.votes[optionText] || 0;
         if (currentVotes <= 0) return;
 
         const newVotes = currentVotes - 1;
@@ -93,12 +93,12 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
 
         // Update votes and costs
         const newCosts = { ...(vote.costs || {}) };
-        newCosts[option] = calculateCost(newVotes);
+        newCosts[optionText] = calculateCost(newVotes);
 
         setVote({
             votes: {
                 ...vote.votes,
-                [option]: newVotes
+                [optionText]: newVotes
             },
             costs: newCosts
         });
@@ -125,13 +125,13 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
                 </div>
             </div>
 
-            {options.map((name, index) => {
-                const voteCount = vote.votes?.[name] || 0;
-                const voteCost = vote.costs?.[name] || 0;
+            {options.map((option, index) => {
+                const voteCount = vote.votes?.[option.text] || 0;
+                const voteCost = vote.costs?.[option.text] || 0;
 
                 return (
                     <li key={index} className="vote-options__item quadratic-item">
-                        <div className="option-name">{name}</div>
+                        <div className="option-name">{option.text}</div>
 
                         <div className="quadratic-controls">
                             <div className="vote-info">
@@ -142,20 +142,20 @@ export default function QuadraticVote({ config, options, vote, setVote, disabled
                             <div className="vote-buttons">
                                 <button
                                     className={`vote-button ${disabled ? 'vote-button--disabled' : ''}`}
-                                    onClick={() => decrementVote(name)}
+                                    onClick={() => decrementVote(option.text)}
                                     disabled={disabled || voteCount <= 0}
                                 >
                                     <span className="material-symbols-outlined">remove</span>
                                 </button>
                                 <button
                                     className={`vote-button ${disabled ? 'vote-button--disabled' : ''}`}
-                                    onClick={() => incrementVote(name)}
+                                    onClick={() => incrementVote(option.text)}
                                     disabled={disabled || remainingCredits < (2 * voteCount + 1)}
                                 >
                                     <span className="material-symbols-outlined">add</span>
                                 </button>
                             </div>
-                            <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
+                            <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} />
                         </div>
                     </li>
                 );

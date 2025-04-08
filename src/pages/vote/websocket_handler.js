@@ -33,12 +33,12 @@ class WebSocketHandler {
     };
   }
 
-  addOption(room, option) {
-    this.socket.send(JSON.stringify({ type: "new_option", room, option }));
+  addOption(room, optionText) {
+    this.socket.send(JSON.stringify({ type: "new_option", room, optionText }));
   }
 
-  removeOption(room, option) {
-    this.socket.send(JSON.stringify({ type: "remove_option", room, option }));
+  removeOption(room, optionText) {
+    this.socket.send(JSON.stringify({ type: "remove_option", room, optionText }));
   }
 
   lockIn(room, vote) {
@@ -55,6 +55,10 @@ class WebSocketHandler {
 
   startNextRound(room) {
     this.socket.send(JSON.stringify({ type: "start_next_round", room }));
+  }
+  
+  endPreliminaryRound(room) {
+    this.socket.send(JSON.stringify({ type: "end_preliminary_round", room }));
   }
 
   addHandler(handler) {

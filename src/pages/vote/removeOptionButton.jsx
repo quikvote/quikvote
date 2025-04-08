@@ -6,7 +6,7 @@ export default function RemoveOptionButton({ isRoomOwner, disabled, option }) {
   const { id } = useParams();
 
   async function removeOption() {
-    WSHandler.removeOption(id, option);
+    WSHandler.removeOption(id, option.text);
   }
 
   return (

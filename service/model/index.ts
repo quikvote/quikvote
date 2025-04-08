@@ -1,4 +1,4 @@
-import { Vote, VoteConfig } from "./voteTypes";
+import { Vote, VoteConfig, ResultDisplayType } from "./voteTypes";
 
 export interface User {
   nickname: string | null;
@@ -12,12 +12,17 @@ export interface UserVote {
   vote: Vote
 }
 
+export interface Option {
+  text: string
+  username: string
+}
+
 export interface Room {
   code: string
   owner: string
-  state: 'open' | 'closed'
+  state: 'preliminary' | 'open' | 'closed'
   participants: string[]
-  options: string[]
+  options: Option[]  // Always an array of Option objects
   votes: UserVote[]
   config: VoteConfig
   resultId: string
@@ -26,12 +31,8 @@ export interface Room {
   currentRound?: number
   roundHistory?: {
     roundNumber: number
-    options: string[]
     eliminatedOptions: string[]
-    votes: UserVote[]
-    sortedOptions?: string[]
-    sortedTotals?: number[]
-    timestamp: number
+    result: Result
   }[]
 }
 
@@ -50,11 +51,22 @@ export function generateRandomRoomCode(): string {
   return code
 }
 
+// User vote information
+export interface UserVoteInfo {
+  username: string
+  nickname?: string | null
+  votes: number
+}
+
+// Option result information
+export interface OptionResult {
+  name: string
+  votes: number
+  voters: UserVoteInfo[]
+}
+
 export interface Result {
   owner: string
-  sortedOptions: string[]
-  sortedTotals: number[]
-  sortedUsers: string[][]
-  sortedUsersVotes: number[][]
+  options: OptionResult[]
   timestamp: number
 }

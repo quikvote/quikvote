@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId, WithId } from 'mongodb';
 import { HistoryDAO } from '../HistoryDAO';
-import { Result } from '../../model';
+import { OptionResult, Result } from '../../model';
 
 class HistoryMongoDB implements HistoryDAO {
     private historyCollection: Collection<Result>;
@@ -9,13 +9,10 @@ class HistoryMongoDB implements HistoryDAO {
         this.historyCollection = db.collection<Result>('history');
     }
 
-    public async createResult(username: string, sortedOptions: string[], sortedTotals: number[], sortedUsers: string[][], sortedUsersVotes: number[][]): Promise<WithId<Result>> {
+    public async createResult(username: string, options: OptionResult[]): Promise<WithId<Result>> {
         const result: Result = {
             owner: username,
-            sortedOptions,
-            sortedTotals,
-            sortedUsers,
-            sortedUsersVotes,
+            options,
             timestamp: Date.now()
         }
 

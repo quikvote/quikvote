@@ -11,14 +11,14 @@ export default function RankVote({ options, vote, setVote, disabled, isRoomOwner
         if (options.length > 0) {
             if (vote.rankings && Object.keys(vote.rankings).length > 0) {
                 const sortedOptions = [...options].sort((a, b) => {
-                    return (vote.rankings[a] || Number.MAX_VALUE) - (vote.rankings[b] || Number.MAX_VALUE);
+                    return (vote.rankings[a.text] || Number.MAX_VALUE) - (vote.rankings[b.text] || Number.MAX_VALUE);
                 });
                 setRankedItems(sortedOptions);
             } else {
                 setRankedItems([...options]);
                 const initialRankings = {};
-                options.forEach((name, index) => {
-                    initialRankings[name] = index + 1;
+                options.forEach((option, index) => {
+                    initialRankings[option.text] = index + 1;
                 });
                 setVote({ rankings: initialRankings });
             }
@@ -29,8 +29,8 @@ export default function RankVote({ options, vote, setVote, disabled, isRoomOwner
     useEffect(() => {
         if (rankedItems.length > 0) {
             const newRankings = {};
-            rankedItems.forEach((name, index) => {
-                newRankings[name] = index + 1;
+            rankedItems.forEach((option, index) => {
+                newRankings[option.text] = index + 1;
             });
             setVote({ rankings: newRankings });
         }
@@ -59,10 +59,10 @@ export default function RankVote({ options, vote, setVote, disabled, isRoomOwner
                         ref={provided.innerRef}
                         className="vote-options"
                     >
-                        {rankedItems.map((name, index) => (
+                        {rankedItems.map((option, index) => (
                             <Draggable
-                                key={name} // Use name as key since it’s unique
-                                draggableId={name}
+                                key={option.text} // Use name as key since it’s unique
+                                draggableId={option.text}
                                 index={index}
                                 isDragDisabled={disabled}
                             >
@@ -81,11 +81,11 @@ export default function RankVote({ options, vote, setVote, disabled, isRoomOwner
                                         <div className="rank-display">
                                             <span className="rank-number">{index + 1}</span>
                                         </div>
-                                        <div className="rank-item-name">{name}</div>
+                                        <div className="rank-item-name">{option.text}</div>
                                         <RemoveOptionButton
                                             isRoomOwner={isRoomOwner}
                                             disabled={disabled}
-                                            option={name}
+                                            option={option}
                                         />
                                     </li>
                                 )}

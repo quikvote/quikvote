@@ -53,8 +53,15 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
     // Update vote state when selections change
     useEffect(() => {
         if (Object.keys(selections).length > 0) {
+            // Convert option objects to option text strings
+            const topChoicesStrings = Object.fromEntries(
+                Object.entries(selections).map(([position, optionObj]) => 
+                    [position, optionObj ? optionObj.text : null]
+                )
+            );
+            
             setVote({
-                topChoices: { ...selections }
+                topChoices: topChoicesStrings
             });
         }
     }, [selections]);
@@ -63,7 +70,7 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
     useEffect(() => {
         if (selections) {
             const filteredSelections = Object.fromEntries(
-                Object.entries(selections).filter(([, value]) => options.includes(value))
+                Object.entries(selections).filter(([, value]) => value && options.some(opt => opt.text === value.text))
             );
             setSelections(filteredSelections);
         }
@@ -76,13 +83,13 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
         const newSelections = { ...selections };
 
         Object.keys(newSelections).forEach(key => {
-            if (newSelections[key] === option && key !== position) {
+            if (newSelections[key]?.text === option.text && key !== position) {
                 newSelections[key] = null;
             }
         });
 
         // Toggle selection for the current position
-        if (newSelections[position] === option) {
+        if (newSelections[position]?.text === option.text) {
             newSelections[position] = null;
         } else {
             newSelections[position] = option;
@@ -92,12 +99,12 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
     };
 
     const isSelectedAnywhere = (option) => {
-        return Object.values(selections).includes(option);
+        return Object.values(selections).some(sel => sel && sel.text === option.text);
     };
 
     const getPositionLabel = (option) => {
         for (let i = 0; i < positions.length; i++) {
-            if (selections[positions[i]] === option) {
+            if (selections[positions[i]] && selections[positions[i]].text === option.text) {
                 return getOrdinalSuffix(i + 1);
             }
         }
@@ -114,19 +121,19 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
                 {positions.map((position, index) => (
                     <div key={position} className="selection-indicator">
                         <span className="indicator-label">{getOrdinalSuffix(index + 1)} Choice:</span>
-                        <span className="indicator-value">{selections[position] || "Not selected"}</span>
+                        <span className="indicator-value">{selections[position] ? selections[position].text : "Not selected"}</span>
                     </div>
                 ))}
             </div>
 
-            {options.map((name, index) => (
+            {options.map((option, index) => (
                 <li key={index} className="vote-options__item top-choices-item">
-                    <span className="option-name">{name}</span>
+                    <span className="option-name">{option.text}</span>
 
                     <div className="top-choices-buttons">
-                        {isSelectedAnywhere(name) ? (
+                        {isSelectedAnywhere(option) ? (
                             <div className="selected-badge">
-                                {getPositionLabel(name)}
+                                {getPositionLabel(option)}
                             </div>
                         ) : (
                             <div className="selection-buttons">
@@ -134,7 +141,7 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
                                     <button
                                         key={position}
                                         className={`selection-button ${disabled ? 'selection-button--disabled' : ''}`}
-                                        onClick={() => handleSelection(name, position)}
+                                        onClick={() => handleSelection(option, position)}
                                         disabled={disabled}
                                     >
                                         {getOrdinalSuffix(posIndex + 1)}
@@ -143,13 +150,13 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
                             </div>
                         )}
 
-                        {isSelectedAnywhere(name) && !disabled && (
+                        {isSelectedAnywhere(option) && !disabled && (
                             <button
                                 className="remove-selection-button"
                                 onClick={() => {
                                     const newSelections = { ...selections };
                                     Object.keys(newSelections).forEach(key => {
-                                        if (newSelections[key] === name) {
+                                        if (newSelections[key] && newSelections[key].text === option.text) {
                                             newSelections[key] = null;
                                         }
                                     });
@@ -159,7 +166,7 @@ export default function TopChoicesVote({ config, options, vote, setVote, disable
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         )}
-                        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
+                        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} />
                     </div>
                 </li>
             ))}

@@ -1,8 +1,8 @@
 import { WithId } from "mongodb";
-import { Result } from "../model";
+import { OptionResult, Result } from "../model";
 
 export interface HistoryDAO {
-    createResult: (username: string, sortedOptions: string[], sortedTotals: number[], sortedUsers: string[][], sortedUsersVotes: number[][]) => Promise<WithId<Result>>;
+    createResult: (username: string, options: OptionResult[]) => Promise<WithId<Result>>;
     getResult: (resultID: string) => Promise<Result | null>;
     getHistory: (username: string) => Promise<Result[]>;
 }

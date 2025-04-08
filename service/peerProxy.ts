@@ -6,7 +6,7 @@ import { DaoFactory } from "./factory/DaoFactory";
 import { v4 as uuidv4 } from 'uuid';
 import { IncomingMessage, Server } from 'http';
 import internal from 'stream';
-import { Result, Room, User } from './model';
+import { Option, OptionResult, Result, Room, User } from './model';
 import { aggregationMap, Vote } from './model/voteTypes';
 import { WithId } from 'mongodb';
 
@@ -20,12 +20,12 @@ interface Connection {
 }
 
 interface WSEvent {
-  type: 'new_option' | 'remove_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round'
+  type: 'new_option' | 'remove_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round' | 'alert' | 'end_preliminary_round'
 }
 
 interface OptionEvent extends WSEvent {
   room: string
-  option: string
+  optionText: string
 }
 
 interface LockInEvent extends WSEvent {
@@ -42,6 +42,10 @@ interface CloseRoomEvent extends WSEvent {
 }
 
 interface StartNextRoundEvent extends WSEvent {
+  room: string
+}
+
+interface EndPreliminaryRoundEvent extends WSEvent {
   room: string
 }
 
@@ -119,6 +123,8 @@ class PeerProxy {
           this.handleUnlockVote(JSON.parse(dataString) as UnlockVoteEvent, connection, connections);
         } else if (dataParsed.type == 'start_next_round') {
           this.handleStartNextRound(JSON.parse(dataString) as StartNextRoundEvent, connection, connections);
+        } else if (dataParsed.type == 'end_preliminary_round') {
+          this.handleEndPreliminaryRound(JSON.parse(dataString) as EndPreliminaryRoundEvent, connection, connections);
         }
       });
 
@@ -155,28 +161,87 @@ class PeerProxy {
       console.warn(`no room with id ${event.room}`)
       return
     }
-    if (room.state !== 'open') {
+    if (room.state !== 'open' && room.state !== 'preliminary') {
       console.warn('room is closed')
       return
+    }
+    
+    // Check if this room had a preliminary round and is now in the open state
+    if (room.state === 'open' && room.config.options.enablePreliminaryRound) {
+      // After preliminary round, only owner can add options
+      if (connection.user !== room.owner) {
+        connection.ws.send(JSON.stringify({
+          type: 'alert',
+          message: "Options can only be added by the room owner after the preliminary round has ended.",
+          alertType: 'warning'
+        }));
+        return;
+      }
+    } 
+    // For rooms without preliminary round, check normal option settings
+    else if (room.config.options.allowNewOptions === 'owner' && connection.user !== room.owner) {
+      connection.ws.send(JSON.stringify({
+        type: 'alert',
+        message: "Only the room owner can add options.",
+        alertType: 'warning'
+      }));
+      return;
     }
     if (!room.participants.includes(connection.user)) {
       console.warn(`room does not include user ${connection.user}`)
       return
     }
-    if (!room.config.options.allowNewOptions && room.owner !== connection.user) {
-      console.warn(`user is not room owner`);
-      return
+    
+    // Check if user can add options based on the room configuration
+    if (room.config.options.allowNewOptions === 'owner') {
+      if (room.owner !== connection.user) {
+        console.warn(`user is not room owner`);
+        return;
+      }
+    } else if (room.config.options.allowNewOptions === 'votesPerPerson') {
+      // Count options created by this user
+      const userOptionsCount = room.options.filter(opt => opt.username === connection.user).length;
+      const maxOptionsAllowed = room.config.options.optionsPerPerson || 2; // Default to 2 if not specified
+      
+      if (userOptionsCount >= maxOptionsAllowed && connection.user !== room.owner) {
+        console.warn(`user ${connection.user} has reached the maximum allowed options (${maxOptionsAllowed})`);
+        
+        // Send an alert to the user who tried to add too many options
+        connection.ws.send(JSON.stringify({
+          type: 'alert',
+          message: `You have reached the maximum allowed options (${maxOptionsAllowed}). Only the room owner can add unlimited options.`,
+          alertType: 'warning'
+        }));
+        
+        return;
+      }
     }
 
-    const newOption = event.option
-    if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
+    const newOption = event.optionText
+
+    // Check for duplicates
+    if (room.options.some(opt => opt.text.toLowerCase() === newOption.toLowerCase())) {
       console.warn('room already includes option')
+      
+      // Send an alert to the user who tried to add a duplicate option
+      connection.ws.send(JSON.stringify({
+        type: 'alert',
+        message: `The option "${newOption}" already exists in this vote.`,
+        alertType: 'warning'
+      }));
+      
       return
     }
 
-    if (await this.roomDAO.addOptionToRoom(event.room, newOption)) {
+    // Add the option and track the creator
+    if (await this.roomDAO.addOptionToRoom(event.room, newOption, connection.user)) {
+      // Get the updated room
+      const updatedRoom = await this.roomDAO.getRoomById(event.room);
+      if (!updatedRoom) return;
+      
+      // Send the updated options array to all participants
       connections.filter(c => room.participants.includes(c.user)).forEach(c => {
-        c.ws.send(JSON.stringify({ type: 'options', options: [...room.options, newOption] }));
+        c.ws.send(JSON.stringify({ type: 'options', options: updatedRoom.options }));
       });
     }
   }
@@ -202,8 +267,8 @@ class PeerProxy {
       return
     }
 
-    const option = event.option
-    if (!room.options.map(opt => opt).includes(option)) {
+    const option = event.optionText
+    if (!room.options.map(opt => opt.text).includes(option)) {
       console.warn('room does not include this option')
       return
     }
@@ -219,7 +284,7 @@ class PeerProxy {
       }
 
       connections.filter(c => room!.participants.includes(c.user)).forEach(c => {
-        c.ws.send(JSON.stringify({ type: 'options', options: [...room!.options] }));
+        c.ws.send(JSON.stringify({ type: 'options', options: room!.options }));
       });
     }
   }
@@ -234,6 +299,16 @@ class PeerProxy {
       return
     }
 
+    if (room.state === 'preliminary') {
+      console.warn('room is in preliminary state, voting not allowed')
+      connection.ws.send(JSON.stringify({
+        type: 'alert',
+        message: "Voting is not allowed during the preliminary round. The room owner must end the preliminary round first.",
+        alertType: 'warning'
+      }));
+      return
+    }
+    
     if (room.state !== 'open') {
       console.warn('room is closed')
       return
@@ -262,7 +337,7 @@ class PeerProxy {
       // All users have voted
 
       if (enableMultiRound && currentRound < maxRounds) {
-        // This is a multi-round vote and we're not in the final round
+        // This is a multi-round vote, and we're not in the final round
         const roundResult = await this.roomDAO.completeRound(roomId);
 
         if (!roundResult) {
@@ -281,19 +356,25 @@ class PeerProxy {
 
         // If auto-advance is enabled, immediately start the next round
         if (autoAdvance) {
-          await this.roomDAO.advanceToNextRound(roomId, roundResult.remainingOptions);
+          const newOptionsArray = roundResult.remainingOptions.map(optText => {
+            // Find the original option to preserve the creator
+            const originalOption = updatedRoom.options.find(opt => opt.text === optText);
+            return {
+              text: optText,
+              username: originalOption ? originalOption.username : updatedRoom.owner
+            };
+          });
+          
+          await this.roomDAO.advanceToNextRound(roomId, newOptionsArray);
 
           // Notify all participants about the new round
           connections.filter(c => updatedRoom.participants.includes(c.user)).forEach(c => {
             c.ws.send(JSON.stringify({
               type: 'next_round_started',
               roundNumber: currentRound + 1,
-              remainingOptions: roundResult.remainingOptions,
+              remainingOptions: newOptionsArray,
               eliminatedOptions: roundResult.eliminatedOptions,
-              roundResults: {
-                sortedOptions: latestRound.sortedOptions,
-                sortedTotals: latestRound.sortedTotals
-              }
+              roundResults: latestRound.result
             }));
           });
         } else {
@@ -303,10 +384,7 @@ class PeerProxy {
               type: 'round_completed',
               roundNumber: currentRound,
               eliminatedOptions: roundResult.eliminatedOptions,
-              roundResults: {
-                sortedOptions: latestRound.sortedOptions,
-                sortedTotals: latestRound.sortedTotals
-              }
+              roundResults: latestRound.result
             }));
           });
         }
@@ -393,6 +471,40 @@ class PeerProxy {
     });
   }
 
+  public async handleEndPreliminaryRound(event: EndPreliminaryRoundEvent, connection: Connection, connections: Connection[]) {
+    const user = connection.user;
+    const roomId = event.room;
+    const room = await this.roomDAO.getRoomById(roomId);
+
+    if (!room) {
+      console.warn(`no room with id ${event.room}`);
+      return;
+    }
+
+    if (room.state !== 'preliminary') {
+      console.warn('room is not in preliminary state');
+      return;
+    }
+
+    if (room.owner !== user) {
+      console.warn('user is not owner of room');
+      return;
+    }
+
+    // End the preliminary round and change state to 'open'
+    const success = await this.roomDAO.endPreliminaryRound(roomId);
+    
+    if (success) {
+      // Notify all participants that voting can now begin
+      connections.filter(c => room.participants.includes(c.user)).forEach(c => {
+        c.ws.send(JSON.stringify({
+          type: 'preliminary_round_ended',
+          room: roomId
+        }));
+      });
+    }
+  }
+
   public async handleStartNextRound(event: StartNextRoundEvent, connection: Connection, connections: Connection[]) {
     const user = connection.user;
     const roomId = event.room;
@@ -423,8 +535,8 @@ class PeerProxy {
     const currentOptions = room.options;
     const eliminatedOptions = latestRound.eliminatedOptions;
 
-    // Calculate remaining options
-    const remainingOptions = currentOptions.filter(opt => !eliminatedOptions.includes(opt));
+    // Calculate remaining options - using Option interface
+    const remainingOptions = currentOptions.filter(opt => !eliminatedOptions.includes(opt.text));
 
     // Advance to the next round
     await this.roomDAO.advanceToNextRound(roomId, remainingOptions);
@@ -436,10 +548,7 @@ class PeerProxy {
         roundNumber: (room.currentRound || 1) + 1,
         remainingOptions: remainingOptions,
         eliminatedOptions: eliminatedOptions,
-        roundResults: {
-          sortedOptions: latestRound.sortedOptions,
-          sortedTotals: latestRound.sortedTotals
-        }
+        roundResults: latestRound.result
       }));
     });
   }
@@ -447,7 +556,7 @@ class PeerProxy {
   private async closeRoom(room: WithId<Room>): Promise<WithId<Result>> {
     const aggregator = aggregationMap[room.config.type]
     const result = aggregator(room)
-    const storedResult = await this.historyDAO.createResult(result.owner, result.sortedOptions, result.sortedTotals, result.sortedUsers, result.sortedUsersVotes);
+    const storedResult = await this.historyDAO.createResult(result.owner, result.options);
 
     await this.roomDAO.closeRoom(room._id.toHexString(), storedResult._id.toHexString());
     return storedResult
