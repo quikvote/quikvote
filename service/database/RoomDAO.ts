@@ -1,5 +1,5 @@
 import { WithId } from "mongodb";
-import { Room } from "../model";
+import { Option, Room } from "../model";
 import { Vote, VoteConfig } from "../model/voteTypes";
 
 export interface RoomDAO {
@@ -8,7 +8,7 @@ export interface RoomDAO {
   getRoomById: (roomId: string) => Promise<WithId<Room> | null>,
   getRoomByResultId: (resultId: string) => Promise<WithId<Room> | null>,
   addParticipantToRoom: (roomCode: string, username: string) => Promise<boolean>,
-  addOptionToRoom: (roomId: string, option: string) => Promise<boolean>,
+  addOptionToRoom: (roomId: string, option: string, creator?: string) => Promise<boolean>,
   removeOptionFromRoom: (roomId: string, option: string) => Promise<boolean>,
   submitUserVotes: (roomId: string, username: string, vote: Vote) => Promise<boolean>,
   removeUserVotes: (roomId: string, username: string) => Promise<void>,
@@ -17,7 +17,7 @@ export interface RoomDAO {
 
   // Multi-round voting methods
   completeRound: (roomId: string) => Promise<{ eliminatedOptions: string[], remainingOptions: string[], roundNumber: number } | null>,
-  advanceToNextRound: (roomId: string, remainingOptions: string[]) => Promise<boolean>,
+  advanceToNextRound: (roomId: string, remainingOptions: Option[]) => Promise<boolean>,
   getCurrentRound: (roomId: string) => Promise<number>,
   getRoundHistory: (roomId: string) => Promise<Room['roundHistory'] | undefined>
 }

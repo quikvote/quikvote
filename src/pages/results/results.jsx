@@ -28,6 +28,14 @@ const Podium = ({ options }) => {
     ];
     return blueGradients[index] || '#dbeafe'; // Default lightest blue
   };
+  
+  // Get ordinal string (1st, 2nd, 3rd, etc)
+  const getOrdinal = (position) => {
+    if (position === 1) return '1st';
+    if (position === 2) return '2nd';
+    if (position === 3) return '3rd';
+    return `${position}th`;
+  };
 
   return (
     <div className="podium-container">
@@ -45,7 +53,7 @@ const Podium = ({ options }) => {
                 backgroundColor: getColor(index)
               }}
             >
-              {index + 1}
+              {getOrdinal(index + 1)}
             </div>
           </div>
         ))}

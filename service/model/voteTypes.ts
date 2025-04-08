@@ -45,7 +45,8 @@ export interface BaseModOptions { // options that apply to all vote types (eg. r
   numRunnerUps: number
   showNumVotes: boolean
   showWhoVoted: boolean
-  allowNewOptions: boolean
+  allowNewOptions: string      // 'owner', 'everyone', or 'votesPerPerson'
+  optionsPerPerson?: number    // Number of options allowed per person when allowNewOptions is 'votesPerPerson'
   resultDisplayType: ResultDisplayType  // Type of result display (bar, pie, podium)
 
   // Multi-round voting options
@@ -110,8 +111,8 @@ export function aggregateScoreVote(room: Room): Result {
   // Process each option
   room.options.forEach(option => {
     // Initialize each option with zero votes
-    results.set(option, {
-      name: option,
+    results.set(option.text, {
+      name: option.text,
       votes: 0,
       voters: []
     });
@@ -123,17 +124,24 @@ export function aggregateScoreVote(room: Room): Result {
       const vote = userVote.vote;
       
       // Process votes for each option
-      Object.entries(vote.scores).forEach(([option, score]) => {
+      Object.entries(vote.scores).forEach(([optionText, score]) => {
         // Make sure the option exists in our results
-        if (!results.has(option)) {
-          results.set(option, {
-            name: option,
+        if (!results.has(optionText)) {
+          // Find the option in room.options to get the full info
+          const optionObj = room.options.find(opt => opt.text === optionText);
+          if (!optionObj) {
+            // If option doesn't exist in room.options (could happen if option was removed), skip it
+            return;
+          }
+          
+          results.set(optionText, {
+            name: optionText,
             votes: 0,
             voters: []
           });
         }
         
-        const optionResult = results.get(option)!;
+        const optionResult = results.get(optionText)!;
         
         // Add user's vote to total
         optionResult.votes += score;
@@ -170,8 +178,8 @@ export function aggregateApprovalVote(room: Room): Result {
   
   // Initialize each option with zero votes
   room.options.forEach(option => {
-    results.set(option, {
-      name: option,
+    results.set(option.text, {
+      name: option.text,
       votes: 0,
       voters: []
     });
@@ -183,17 +191,24 @@ export function aggregateApprovalVote(room: Room): Result {
       const vote = userVote.vote;
       
       // Each approval counts as 1 point
-      Object.entries(vote.approvals).forEach(([option, approved]) => {
-        if (!results.has(option)) {
-          results.set(option, {
-            name: option,
+      Object.entries(vote.approvals).forEach(([optionText, approved]) => {
+        if (!results.has(optionText)) {
+          // Find the option in room.options to get the full info
+          const optionObj = room.options.find(opt => opt.text === optionText);
+          if (!optionObj) {
+            // If option doesn't exist in room.options (could happen if option was removed), skip it
+            return;
+          }
+          
+          results.set(optionText, {
+            name: optionText,
             votes: 0,
             voters: []
           });
         }
         
         if (approved) {
-          const optionResult = results.get(option)!;
+          const optionResult = results.get(optionText)!;
           
           // Add 1 point to the option's total
           optionResult.votes += 1;
@@ -229,8 +244,8 @@ export function aggregateQuadraticVote(room: Room): Result {
   
   // Initialize each option with zero votes
   room.options.forEach(option => {
-    results.set(option, {
-      name: option,
+    results.set(option.text, {
+      name: option.text,
       votes: 0,
       voters: []
     });
@@ -241,16 +256,23 @@ export function aggregateQuadraticVote(room: Room): Result {
     if (userVote.vote.type === VoteType.Quadratic) {
       const vote = userVote.vote;
       
-      Object.entries(vote.votes).forEach(([option, voteCount]) => {
-        if (!results.has(option)) {
-          results.set(option, {
-            name: option,
+      Object.entries(vote.votes).forEach(([optionText, voteCount]) => {
+        if (!results.has(optionText)) {
+          // Find the option in room.options to get the full info
+          const optionObj = room.options.find(opt => opt.text === optionText);
+          if (!optionObj) {
+            // If option doesn't exist in room.options (could happen if option was removed), skip it
+            return;
+          }
+          
+          results.set(optionText, {
+            name: optionText,
             votes: 0,
             voters: []
           });
         }
         
-        const optionResult = results.get(option)!;
+        const optionResult = results.get(optionText)!;
         
         // Add vote count to the option's total
         optionResult.votes += voteCount;
@@ -287,8 +309,8 @@ export function aggregateRankVote(room: Room): Result {
   
   // Initialize each option with zero votes
   room.options.forEach(option => {
-    results.set(option, {
-      name: option,
+    results.set(option.text, {
+      name: option.text,
       votes: 0,
       voters: []
     });
@@ -300,16 +322,23 @@ export function aggregateRankVote(room: Room): Result {
       const vote = userVote.vote;
       const numOptions = room.options.length;
       
-      Object.entries(vote.rankings).forEach(([option, rank]) => {
-        if (!results.has(option)) {
-          results.set(option, {
-            name: option,
+      Object.entries(vote.rankings).forEach(([optionText, rank]) => {
+        if (!results.has(optionText)) {
+          // Find the option in room.options to get the full info
+          const optionObj = room.options.find(opt => opt.text === optionText);
+          if (!optionObj) {
+            // If option doesn't exist in room.options (could happen if option was removed), skip it
+            return;
+          }
+          
+          results.set(optionText, {
+            name: optionText,
             votes: 0,
             voters: []
           });
         }
         
-        const optionResult = results.get(option)!;
+        const optionResult = results.get(optionText)!;
         
         // Invert the rank so first place (rank 1) gets the most points
         const points = numOptions - rank + 1;
@@ -347,8 +376,8 @@ export function aggregateTopChoicesVote(room: Room): Result {
   
   // Initialize each option with zero votes
   room.options.forEach(option => {
-    results.set(option, {
-      name: option,
+    results.set(option.text, {
+      name: option.text,
       votes: 0,
       voters: []
     });
@@ -363,11 +392,18 @@ export function aggregateTopChoicesVote(room: Room): Result {
       // Process each choice position and its corresponding option
       Object.entries(vote.topChoices).forEach(([position, option]) => {
         // Skip null selections
-        if (!option || !room.options.includes(option)) {
+        if (!option || !room.options.some(opt => opt.text === option)) {
           return;
         }
         
         if (!results.has(option)) {
+          // Find the option in room.options to get the full info
+          const optionObj = room.options.find(opt => opt.text === option);
+          if (!optionObj) {
+            // If option doesn't exist in room.options (could happen if option was removed), skip it
+            return;
+          }
+          
           results.set(option, {
             name: option,
             votes: 0,

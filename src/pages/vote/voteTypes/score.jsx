@@ -3,26 +3,30 @@ import '../vote.css'
 import RemoveOptionButton from '../removeOptionButton';
 
 export default function ScoreVote({ config, options, vote, setVote, disabled, isRoomOwner }) {
-  return options.map((name, i) => (
-    <ScoreVoteOption
-      config={config}
-      name={name}
-      key={i}
-      value={vote.scores?.[name]}
-      setValue={(val) =>
-        setVote({
-          scores: {
-            ...vote.scores,
-            [name]: val
-          }
-        })}
-      disabled={disabled}
-      isRoomOwner={isRoomOwner}
-    />
-  ))
+  return options.map((option, i) => {
+    return (
+      <ScoreVoteOption
+        config={config}
+        option={option}
+        key={i}
+        value={vote.scores?.[option.text]}
+        setValue={(val) =>
+          setVote({
+            scores: {
+              ...vote.scores,
+              [option.text]: val
+            }
+          })}
+        disabled={disabled}
+        isRoomOwner={isRoomOwner}
+      />
+    );
+  });
 }
 
-function ScoreVoteOption({ config, name, value, setValue, disabled, isRoomOwner }) {
+function ScoreVoteOption({ config, option, value, setValue, disabled, isRoomOwner }) {
+  const optionText = option.text;
+  
   useEffect(() => {
     if (value === undefined) {
       setValue(config.options.minVotesPerOption)
@@ -42,7 +46,7 @@ function ScoreVoteOption({ config, name, value, setValue, disabled, isRoomOwner 
     setValue(value - 1)
   }
   return (
-    <li className="vote-options__item">{name}
+    <li className="vote-options__item">{optionText}
       <div className="vote-buttons">
         <button
           className={`vote-buttons__button ${disabled ? 'vote-buttons__button--disabled' : ''}`}
@@ -59,7 +63,7 @@ function ScoreVoteOption({ config, name, value, setValue, disabled, isRoomOwner 
         >
           <span className="material-symbols-outlined">arrow_upward</span>
         </button>
-        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
+        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} />
       </div>
     </li>
   )

@@ -10,6 +10,7 @@ const defaultConfig = {
     showWhoVoted: false,
     resultDisplayType: 'bar',
     allowNewOptions: 'owner',
+    optionsPerPerson: 2,  // Default number of options per person when votesPerPerson mode is selected
 
     // Score vote specific options
     minVotesPerOption: 0,
@@ -42,6 +43,7 @@ export default function New() {
       showWhoVoted: config.options.showWhoVoted,
       resultDisplayType: config.options.resultDisplayType,
       allowNewOptions: config.options.allowNewOptions,
+      optionsPerPerson: config.options.optionsPerPerson,
       enableRound: config.options.enableRound,
       eliminationCount: config.options.eliminationCount,
       maxRounds: config.options.maxRounds,
@@ -340,7 +342,20 @@ export default function New() {
                   <p>All participants can add new options to the vote.</p>
                 )}
                 {config.options.allowNewOptions === 'votesPerPerson' && (
-                  <p>Each participant can add a limited number of options based on their vote allocation.</p>
+                  <>
+                    <p>Each participant can add a limited number of options based on their vote allocation.</p>
+                    <div className="option-row" style={{marginTop: '15px'}}>
+                      <label htmlFor="optionsPerPerson">Options per Person:</label>
+                      <input
+                          type="number"
+                          id="optionsPerPerson"
+                          value={config.options.optionsPerPerson}
+                          onChange={(e) => handleCommonOptionChange('optionsPerPerson', parseInt(e.target.value))}
+                          min="1"
+                          max="10"
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             </div>

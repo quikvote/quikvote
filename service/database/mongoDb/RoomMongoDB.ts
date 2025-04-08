@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId, WithId } from 'mongodb';
 import { RoomDAO } from '../RoomDAO';
-import { generateRandomRoomCode, Room } from '../../model';
+import { generateRandomRoomCode, Option, Room } from '../../model';
 import { Vote, VoteConfig, aggregationMap } from '../../model/voteTypes';
 
 class RoomMongoDB implements RoomDAO {
@@ -15,7 +15,7 @@ class RoomMongoDB implements RoomDAO {
       code: generateRandomRoomCode(),
       owner: creatorUsername,
       participants: [creatorUsername],
-      options: [],
+      options: [], // Empty array of Option objects
       votes: [],
       state: 'open',
       resultId: '',
@@ -60,25 +60,42 @@ class RoomMongoDB implements RoomDAO {
     return result.acknowledged && result.matchedCount === 1
   }
 
-  public async addOptionToRoom(roomId: string, option: string): Promise<boolean> {
-    const result = await this.roomsCollection.updateOne(
-      { _id: new ObjectId(roomId), state: 'open' },
-      {
-        $addToSet: {
-          options: option
+  public async addOptionToRoom(roomId: string, option: string, creator?: string): Promise<boolean> {
+    const room = await this.getRoomById(roomId);
+    if (!room) return false;
+    
+    // Always use the Option format
+    const updateQuery = {
+      $push: {
+        options: {
+          text: option,
+          username: creator || room.owner
         }
       }
-    )
-    return result.acknowledged && result.matchedCount === 1
+    };
+    
+    const result = await this.roomsCollection.updateOne(
+      { _id: new ObjectId(roomId), state: 'open' },
+      updateQuery
+    );
+    
+    return result.acknowledged && result.matchedCount === 1;
   }
 
   public async removeOptionFromRoom(roomId: string, option: string): Promise<boolean> {
+    const room = await this.getRoomById(roomId);
+    if (!room) return false;
+    
+    // Always remove by text field with Option format
     const result = await this.roomsCollection.updateOne(
       { _id: new ObjectId(roomId) },
       {
-        $pull: { options: option }
+        $pull: { 
+          options: { text: option }
+        }
       }
-    )
+    );
+    
     return result.acknowledged && result.matchedCount === 1;
   }
 
@@ -150,8 +167,9 @@ class RoomMongoDB implements RoomDAO {
     // Determine which options to eliminate (from the bottom)
     const eliminatedOptions = result.options.slice(-eliminationCount).map(opt => opt.name);
 
-    // Calculate remaining options for next round
-    const remainingOptions = room.options.filter(opt => !eliminatedOptions.includes(opt));
+    // Calculate remaining options for next round - extract just the text
+    const remainingOptionsObjects = room.options.filter(opt => !eliminatedOptions.includes(opt.text));
+    const remainingOptionTexts = remainingOptionsObjects.map(opt => opt.text);
 
     // Save the detailed round data to history
     await this.roomsCollection.updateOne(
@@ -169,7 +187,7 @@ class RoomMongoDB implements RoomDAO {
 
     return {
       eliminatedOptions,
-      remainingOptions,
+      remainingOptions: remainingOptionTexts,
       roundNumber: currentRound
     };
   }
@@ -178,7 +196,7 @@ class RoomMongoDB implements RoomDAO {
    * Advances to the next round with the remaining options
    * Resets votes for the new round
    */
-  public async advanceToNextRound(roomId: string, remainingOptions: string[]): Promise<boolean> {
+  public async advanceToNextRound(roomId: string, remainingOptions: Option[]): Promise<boolean> {
     const room = await this.getRoomById(roomId);
     if (!room) return false;
 

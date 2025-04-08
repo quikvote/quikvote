@@ -6,7 +6,7 @@ import { DaoFactory } from "./factory/DaoFactory";
 import { v4 as uuidv4 } from 'uuid';
 import { IncomingMessage, Server } from 'http';
 import internal from 'stream';
-import { OptionResult, Result, Room, User } from './model';
+import { Option, OptionResult, Result, Room, User } from './model';
 import { aggregationMap, Vote } from './model/voteTypes';
 import { WithId } from 'mongodb';
 
@@ -25,7 +25,7 @@ interface WSEvent {
 
 interface OptionEvent extends WSEvent {
   room: string
-  option: string
+  optionText: string
 }
 
 interface LockInEvent extends WSEvent {
@@ -163,20 +163,41 @@ class PeerProxy {
       console.warn(`room does not include user ${connection.user}`)
       return
     }
-    if (!room.config.options.allowNewOptions && room.owner !== connection.user) {
-      console.warn(`user is not room owner`);
-      return
+    
+    // Check if user can add options based on the room configuration
+    if (room.config.options.allowNewOptions === 'owner') {
+      if (room.owner !== connection.user) {
+        console.warn(`user is not room owner`);
+        return;
+      }
+    } else if (room.config.options.allowNewOptions === 'votesPerPerson') {
+      // Count options created by this user
+      const userOptionsCount = room.options.filter(opt => opt.username === connection.user).length;
+      const maxOptionsAllowed = room.config.options.optionsPerPerson || 2; // Default to 2 if not specified
+      
+      if (userOptionsCount >= maxOptionsAllowed && connection.user !== room.owner) {
+        console.warn(`user ${connection.user} has reached the maximum allowed options (${maxOptionsAllowed})`);
+        return;
+      }
     }
 
-    const newOption = event.option
-    if (room.options.map(opt => opt.toLowerCase()).includes(newOption.toLowerCase())) {
+    const newOption = event.optionText
+
+    // Check for duplicates
+    if (room.options.some(opt => opt.text.toLowerCase() === newOption.toLowerCase())) {
       console.warn('room already includes option')
       return
     }
 
-    if (await this.roomDAO.addOptionToRoom(event.room, newOption)) {
+    // Add the option and track the creator
+    if (await this.roomDAO.addOptionToRoom(event.room, newOption, connection.user)) {
+      // Get the updated room
+      const updatedRoom = await this.roomDAO.getRoomById(event.room);
+      if (!updatedRoom) return;
+      
+      // Send the updated options array to all participants
       connections.filter(c => room.participants.includes(c.user)).forEach(c => {
-        c.ws.send(JSON.stringify({ type: 'options', options: [...room.options, newOption] }));
+        c.ws.send(JSON.stringify({ type: 'options', options: updatedRoom.options }));
       });
     }
   }
@@ -202,8 +223,8 @@ class PeerProxy {
       return
     }
 
-    const option = event.option
-    if (!room.options.map(opt => opt).includes(option)) {
+    const option = event.optionText
+    if (!room.options.map(opt => opt.text).includes(option)) {
       console.warn('room does not include this option')
       return
     }
@@ -219,7 +240,7 @@ class PeerProxy {
       }
 
       connections.filter(c => room!.participants.includes(c.user)).forEach(c => {
-        c.ws.send(JSON.stringify({ type: 'options', options: [...room!.options] }));
+        c.ws.send(JSON.stringify({ type: 'options', options: room!.options }));
       });
     }
   }
@@ -262,7 +283,7 @@ class PeerProxy {
       // All users have voted
 
       if (enableMultiRound && currentRound < maxRounds) {
-        // This is a multi-round vote and we're not in the final round
+        // This is a multi-round vote, and we're not in the final round
         const roundResult = await this.roomDAO.completeRound(roomId);
 
         if (!roundResult) {
@@ -281,14 +302,23 @@ class PeerProxy {
 
         // If auto-advance is enabled, immediately start the next round
         if (autoAdvance) {
-          await this.roomDAO.advanceToNextRound(roomId, roundResult.remainingOptions);
+          const newOptionsArray = roundResult.remainingOptions.map(optText => {
+            // Find the original option to preserve the creator
+            const originalOption = updatedRoom.options.find(opt => opt.text === optText);
+            return {
+              text: optText,
+              username: originalOption ? originalOption.username : updatedRoom.owner
+            };
+          });
+          
+          await this.roomDAO.advanceToNextRound(roomId, newOptionsArray);
 
           // Notify all participants about the new round
           connections.filter(c => updatedRoom.participants.includes(c.user)).forEach(c => {
             c.ws.send(JSON.stringify({
               type: 'next_round_started',
               roundNumber: currentRound + 1,
-              remainingOptions: roundResult.remainingOptions,
+              remainingOptions: newOptionsArray,
               eliminatedOptions: roundResult.eliminatedOptions,
               roundResults: latestRound.result
             }));
@@ -417,8 +447,8 @@ class PeerProxy {
     const currentOptions = room.options;
     const eliminatedOptions = latestRound.eliminatedOptions;
 
-    // Calculate remaining options
-    const remainingOptions = currentOptions.filter(opt => !eliminatedOptions.includes(opt));
+    // Calculate remaining options - using Option interface
+    const remainingOptions = currentOptions.filter(opt => !eliminatedOptions.includes(opt.text));
 
     // Advance to the next round
     await this.roomDAO.advanceToNextRound(roomId, remainingOptions);

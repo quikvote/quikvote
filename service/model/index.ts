@@ -12,12 +12,17 @@ export interface UserVote {
   vote: Vote
 }
 
+export interface Option {
+  text: string
+  username: string
+}
+
 export interface Room {
   code: string
   owner: string
   state: 'open' | 'closed'
   participants: string[]
-  options: string[]
+  options: Option[]  // Always an array of Option objects
   votes: UserVote[]
   config: VoteConfig
   resultId: string

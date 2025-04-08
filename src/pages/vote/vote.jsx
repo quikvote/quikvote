@@ -154,7 +154,8 @@ export default function Vote() {
     } else if (event.type == 'next_round_started') {
       // Reset state for next round
       setCurrentRound(event.roundNumber)
-      setOptions(event.remainingOptions)
+      // Handle remainingOptions as Option objects
+      setOptions(Array.isArray(event.remainingOptions) ? event.remainingOptions : [])
       setLockedIn(false)
       setVote({})
       setResultsId('')
@@ -169,6 +170,18 @@ export default function Vote() {
       if (event.eliminatedOptions) {
         setEliminatedOptions(prev => [...prev, ...event.eliminatedOptions])
       }
+    } else if (event.type == 'round_completed') {
+      // Handle round completion event (when round is completed but not yet advanced)
+      setRoundComplete(true)
+      setWaitingForNextRound(true)
+      
+      if (event.eliminatedOptions) {
+        setEliminatedOptions(prev => [...prev, ...event.eliminatedOptions])
+      }
+      
+      if (event.roundResults) {
+        setRoundResults(event.roundResults)
+      }
     }
   }
 
@@ -177,8 +190,8 @@ export default function Vote() {
     scrollDiv.scrollTop = scrollDiv.scrollHeight
   }
 
-  async function addOption(opt) {
-    WSHandler.addOption(id, opt)
+  async function addOption(optionText) {
+    WSHandler.addOption(id, optionText)
   }
 
   function unlockVotes() {
@@ -229,8 +242,8 @@ export default function Vote() {
 
         <div className="eliminated-options">
           <p>Eliminated options:</p>
-          {latestEliminated.map((option, index) => (
-            <span key={index} className="eliminated-option">{option}</span>
+          {latestEliminated.map((optionText, index) => (
+            <span key={index} className="eliminated-option">{optionText}</span>
           ))}
         </div>
       </div>

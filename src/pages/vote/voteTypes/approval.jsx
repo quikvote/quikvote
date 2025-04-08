@@ -9,7 +9,7 @@ export default function ApprovalVote({ options, vote, setVote, disabled, isRoomO
             // Initialize with empty approvals
             const initialApprovals = {};
             options.forEach(option => {
-                initialApprovals[option] = false;
+                initialApprovals[option.text] = false;
             });
             setVote({
                 approvals: initialApprovals
@@ -17,13 +17,13 @@ export default function ApprovalVote({ options, vote, setVote, disabled, isRoomO
         }
     }, [options]);
 
-    const toggleApproval = (option) => {
+    const toggleApproval = (optionText) => {
         if (disabled) return;
 
         setVote({
             approvals: {
                 ...vote.approvals,
-                [option]: !vote.approvals[option]
+                [optionText]: !vote.approvals[optionText]
             }
         });
     };
@@ -34,20 +34,22 @@ export default function ApprovalVote({ options, vote, setVote, disabled, isRoomO
                 <p>Select all options that you approve of:</p>
             </div>
 
-            {options.map((name, index) => (
-                <li key={index} className="vote-options__item approval-item">
-                    <div
-                        className={`approval-checkbox ${vote.approvals?.[name] ? 'approval-checkbox--checked' : ''} ${disabled ? 'approval-checkbox--disabled' : ''}`}
-                        onClick={() => toggleApproval(name)}
-                    >
-                        {vote.approvals?.[name] && (
-                            <span className="material-symbols-outlined">check</span>
-                        )}
-                    </div>
-                    <span className="option-name">{name}</span>
-                    <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={name} />
-                </li>
-            ))}
+            {options.map((option, index) => {
+                return (
+                    <li key={index} className="vote-options__item approval-item">
+                        <div
+                            className={`approval-checkbox ${vote.approvals?.[option.text] ? 'approval-checkbox--checked' : ''} ${disabled ? 'approval-checkbox--disabled' : ''}`}
+                            onClick={() => toggleApproval(option.text)}
+                        >
+                            {vote.approvals?.[option.text] && (
+                                <span className="material-symbols-outlined">check</span>
+                            )}
+                        </div>
+                        <span className="option-name">{option.text}</span>
+                        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} />
+                    </li>
+                );
+            })}
 
             <div className="approval-summary">
                 {vote.approvals && (
