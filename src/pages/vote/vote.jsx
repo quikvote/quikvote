@@ -55,6 +55,9 @@ export default function Vote() {
   const [resultsId, setResultsId] = useState('')
   const [code, setCode] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  
+  // Alert state
+  const [alert, setAlert] = useState({ show: false, message: '', type: 'info' })
 
   // Multi-round specific state
   const [currentRound, setCurrentRound] = useState(1)
@@ -182,6 +185,18 @@ export default function Vote() {
       if (event.roundResults) {
         setRoundResults(event.roundResults)
       }
+    } else if (event.type == 'alert') {
+      // Show the alert message
+      setAlert({ 
+        show: true, 
+        message: event.message, 
+        type: event.alertType || 'info' 
+      })
+      
+      // Automatically hide the alert after 5 seconds
+      setTimeout(() => {
+        setAlert(prev => ({ ...prev, show: false }))
+      }, 5000)
     }
   }
 
@@ -354,12 +369,36 @@ export default function Vote() {
     return viewResultsButton
   }
 
+  // Alert component
+  const AlertNotification = () => {
+    if (!alert.show) return null;
+    
+    const alertClasses = {
+      info: 'alert alert--info',
+      warning: 'alert alert--warning',
+      error: 'alert alert--error'
+    };
+    
+    return (
+      <div className={alertClasses[alert.type] || alertClasses.info}>
+        <span className="alert__message">{alert.message}</span>
+        <button 
+          className="alert__close" 
+          onClick={() => setAlert(prev => ({ ...prev, show: false }))}
+        >
+          <span className="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <>
       <header className="header header--room-code" onClick={() => setModalOpen(true)}>
         <h3>Share this QuikVote!</h3>
         <span className="material-symbols-outlined">ios_share</span>
       </header>
+      {alert.show && <AlertNotification />}
       <main className="main" id="main-element">
         {renderRoundIndicator()}
         {renderPreviousRoundResults()}

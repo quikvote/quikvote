@@ -20,7 +20,7 @@ interface Connection {
 }
 
 interface WSEvent {
-  type: 'new_option' | 'remove_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round'
+  type: 'new_option' | 'remove_option' | 'lock_in' | 'close_room' | 'unlock_vote' | 'start_next_round' | 'alert'
 }
 
 interface OptionEvent extends WSEvent {
@@ -177,6 +177,14 @@ class PeerProxy {
       
       if (userOptionsCount >= maxOptionsAllowed && connection.user !== room.owner) {
         console.warn(`user ${connection.user} has reached the maximum allowed options (${maxOptionsAllowed})`);
+        
+        // Send an alert to the user who tried to add too many options
+        connection.ws.send(JSON.stringify({
+          type: 'alert',
+          message: `You have reached the maximum allowed options (${maxOptionsAllowed}). Only the room owner can add unlimited options.`,
+          alertType: 'warning'
+        }));
+        
         return;
       }
     }
@@ -186,6 +194,14 @@ class PeerProxy {
     // Check for duplicates
     if (room.options.some(opt => opt.text.toLowerCase() === newOption.toLowerCase())) {
       console.warn('room already includes option')
+      
+      // Send an alert to the user who tried to add a duplicate option
+      connection.ws.send(JSON.stringify({
+        type: 'alert',
+        message: `The option "${newOption}" already exists in this vote.`,
+        alertType: 'warning'
+      }));
+      
       return
     }
 

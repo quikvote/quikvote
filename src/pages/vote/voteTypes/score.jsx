@@ -3,6 +3,27 @@ import '../vote.css'
 import RemoveOptionButton from '../removeOptionButton';
 
 export default function ScoreVote({ config, options, vote, setVote, disabled, isRoomOwner }) {
+  // Initialize all scores at once when options change or votes are reset
+  useEffect(() => {
+    // Check if we need to initialize any scores
+    if (!vote.scores || options.some(option => vote.scores?.[option.text] === undefined)) {
+      const initialScores = {};
+      
+      // Initialize scores for all options that don't have a value yet
+      options.forEach(option => {
+        // Use existing value if defined, otherwise use the minimum
+        initialScores[option.text] = vote.scores?.[option.text] !== undefined
+          ? vote.scores[option.text]
+          : config.options.minVotesPerOption;
+      });
+      
+      // Update vote state with all initialized scores
+      setVote({
+        scores: initialScores
+      });
+    }
+  }, [options, config.options.minVotesPerOption, vote.scores, setVote]);
+
   return options.map((option, i) => {
     return (
       <ScoreVoteOption
@@ -26,12 +47,6 @@ export default function ScoreVote({ config, options, vote, setVote, disabled, is
 
 function ScoreVoteOption({ config, option, value, setValue, disabled, isRoomOwner }) {
   const optionText = option.text;
-  
-  useEffect(() => {
-    if (value === undefined) {
-      setValue(config.options.minVotesPerOption)
-    }
-  }, [])
 
   function increaseValue() {
     if (value == config.options.maxVotesPerOption) {
