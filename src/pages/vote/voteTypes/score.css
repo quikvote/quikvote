@@ -1,0 +1,33 @@
+.vote-option__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Slider container */
+.vote-slider-container {
+  display: flex;
+  width: 100%;
+  padding: 0 10px;
+  gap: 15px;
+}
+
+/* Slider styles */
+.vote-slider {
+  width: 100%;
+}
+
+/* Disabled state */
+.vote-slider--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Value display */
+.vote-slider__value {
+  text-align: right;
+  font-size: 16px;
+  opacity: 0.7;
+}
+
