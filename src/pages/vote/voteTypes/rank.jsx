@@ -5,6 +5,33 @@ import RemoveOptionButton from '../removeOptionButton';
 
 export default function RankVote({ options, vote, setVote, disabled, isRoomOwner }) {
     const [rankedItems, setRankedItems] = useState([]);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+    // Detect input type
+    useEffect(() => {
+        // Check pointer type with matchMedia
+        const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const isTouchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        // Set initial state: prioritize coarse pointer (touch) if present, else assume mouse
+        setIsTouchDevice(isCoarsePointer || isTouchCapable);
+
+        const handleTouchStart = () => setIsTouchDevice(true);
+        const handleMouseDown = (e) => {
+            // Ensure it's a mouse event, not a touch-emulated mouse event
+            if (e.buttons === 1 && !e.pointerType?.includes('touch')) {
+                setIsTouchDevice(false);
+            }
+        };
+
+        window.addEventListener('touchstart', handleTouchStart);
+        window.addEventListener('mousedown', handleMouseDown);
+
+        return () => {
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('mousedown', handleMouseDown);
+        };
+    }, []);
 
     // Initialize ranked items from options or existing rankings
     useEffect(() => {
@@ -70,11 +97,12 @@ export default function RankVote({ options, vote, setVote, disabled, isRoomOwner
                                     <li
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
+                                        {...(!isTouchDevice ? provided.dragHandleProps : {})}
                                         className={`vote-options__item vote-options__item--draggable ${disabled ? 'vote-options__item--disabled' : ''
                                             } ${snapshot.isDragging ? 'vote-options__item--dragging' : ''}`}
                                     >
                                         {!disabled && (
-                                            <span {...provided.dragHandleProps} className="material-symbols-outlined drag-handle">
+                                            <span {...(isTouchDevice ? provided.dragHandleProps : {})} className="material-symbols-outlined drag-handle">
                                                 drag_indicator
                                             </span>
                                         )}
