@@ -463,19 +463,13 @@ export default function Vote() {
       {alert.show && <AlertNotification />}
       <main className="main" id="main-element">
         {renderRoundIndicator()}
-        {renderPreviousRoundResults()}
 
-        {roomState === 'preliminary' && (
-          <div className="preliminary-instructions">
-            <h3>Preliminary Round</h3>
-            <p>This is the option gathering phase. All participants can add options based on the room settings.</p>
-            <p>Voting is disabled during this phase. When the room owner ends the preliminary round, voting will begin and only the room owner will be able to add new options.</p>
-          </div>
-        )}
-        
-        <ul className="vote-options">
-          {renderOptions()}
-        </ul>
+        <div className="vote-content">
+          {renderPreviousRoundResults()}
+          <ul className="vote-options">
+            {renderOptions()}
+          </ul>
+        </div>
         {/* Determine whether to show add option based on room state and config */}
         {((roomState === 'preliminary' && config.options && 
              (config.options.allowNewOptions === 'everyone' || 
