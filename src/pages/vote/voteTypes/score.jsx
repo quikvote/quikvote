@@ -1,85 +1,61 @@
 import React, { useEffect } from 'react';
-import '../vote.css'
+import './score.css';
 import RemoveOptionButton from '../removeOptionButton';
 
 export default function ScoreVote({ config, options, vote, setVote, disabled, isRoomOwner }) {
-  // Initialize all scores at once when options change or votes are reset
   useEffect(() => {
-    // Check if we need to initialize any scores
     if (!vote.scores || options.some(option => vote.scores?.[option.text] === undefined)) {
       const initialScores = {};
-      
-      // Initialize scores for all options that don't have a value yet
       options.forEach(option => {
-        // Use existing value if defined, otherwise use the minimum
         initialScores[option.text] = vote.scores?.[option.text] !== undefined
           ? vote.scores[option.text]
           : config.options.minVotesPerOption;
       });
-      
-      // Update vote state with all initialized scores
-      setVote({
-        scores: initialScores
-      });
+      setVote({ scores: initialScores });
     }
   }, [options, config.options.minVotesPerOption, vote.scores, setVote]);
 
-  return options.map((option, i) => {
-    return (
-      <ScoreVoteOption
-        config={config}
-        option={option}
-        key={i}
-        value={vote.scores?.[option.text]}
-        setValue={(val) =>
-          setVote({
-            scores: {
-              ...vote.scores,
-              [option.text]: val
-            }
-          })}
-        disabled={disabled}
-        isRoomOwner={isRoomOwner}
-      />
-    );
-  });
+  return options.map((option, i) => (
+    <ScoreVoteOption
+      config={config}
+      option={option}
+      key={i}
+      value={vote.scores?.[option.text]}
+      setValue={(val) =>
+        setVote({
+          scores: { ...vote.scores, [option.text]: val },
+        })}
+      disabled={disabled}
+      isRoomOwner={isRoomOwner}
+    />
+  ));
 }
 
 function ScoreVoteOption({ config, option, value, setValue, disabled, isRoomOwner }) {
   const optionText = option.text;
 
-  function increaseValue() {
-    if (value == config.options.maxVotesPerOption) {
-      return
-    }
-    setValue(value + 1)
+  function handleSliderChange(event) {
+    setValue(Number(event.target.value));
   }
-  function decreaseValue() {
-    if (value == config.options.minVotesPerOption) {
-      return
-    }
-    setValue(value - 1)
-  }
+
   return (
-    <li className="vote-options__item">{optionText}
-      <div className="vote-buttons">
-        <button
-          className={`vote-buttons__button ${disabled ? 'vote-buttons__button--disabled' : ''}`}
-          onClick={decreaseValue}
-          disabled={disabled}
-        >
-          <span className="material-symbols-outlined">arrow_downward</span>
-        </button>
-        <span className="vote-buttons__value">{value}</span>
-        <button
-          className={`vote-buttons__button ${disabled ? 'vote-buttons__button--disabled' : ''}`}
-          onClick={increaseValue}
-          disabled={disabled}
-        >
-          <span className="material-symbols-outlined">arrow_upward</span>
-        </button>
-        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} />
+    <li className="vote-options__item">
+      <div className="vote-option__content">
+        <span className="vote-option__text">{optionText}</span>
+        <div className="vote-slider-container">
+          <input
+            type="range"
+            min={config.options.minVotesPerOption}
+            max={config.options.maxVotesPerOption}
+            value={value ?? config.options.minVotesPerOption ?? 0}
+            onChange={handleSliderChange}
+            disabled={disabled}
+            className={`vote-slider ${disabled ? 'vote-slider--disabled' : ''}`}
+          />
+          <span className="vote-slider__value">{value}</span>
+        </div>
       </div>
+      <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} />
     </li>
-  )
+  );
 }
