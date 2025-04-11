@@ -19,17 +19,19 @@ export default function History() {
           'Content-type': 'application/json; charset=UTF-8',
         }
       })
+
       if (response.status == 200) {
         const body = await response.json()
         setDataArray(body.history.map(h => ({
-          winner: h.sortedOptions[0],
-          runnersUp: h.sortedOptions.slice(1),
-          date: h.timestamp
+          id: h._id,
+          date: h.timestamp,
+          winner: h.options.length > 0 ? h.options[0].name : '',
         })))
       }
     }
     fetchData().catch(console.error)
   }, [])
+
   function renderItems() {
     return dataArray.map((data, i) => (
       <HistoryItem key={i} data={data} />
@@ -67,24 +69,23 @@ export default function History() {
   }
 */
 function HistoryItem(props) {
-  const { winner, runnersUp, date } = props.data
-  function getRunnersUp() {
-    const MAX_LENGTH = 3
-    if (runnersUp.length <= MAX_LENGTH) {
-      return runnersUp.join(', ')
-    }
-    const clippedList = runnersUp.slice(0, MAX_LENGTH - 1)
-    clippedList.push(`(${runnersUp.length - MAX_LENGTH + 1} more)`)
-    return clippedList.join(', ')
-  }
+  const { id, date, winner } = props.data
+
   function getFormattedDate() {
     return dayjs(date).format('dddd, MMM D, YYYY - h:mm A')
   }
+  
   return (
     <li className="history-item">
       <h3 className="history-item__header">Winner: {winner}</h3>
-      <p className="history-item__content">Runner up(s): {getRunnersUp()}</p>
       <p className="history-item__content">{getFormattedDate()}</p>
+      <NavLink
+        className="main__button"
+        to={`/results/${id}`}
+        style={{ textAlign: 'center' }}
+      >
+        View Results
+      </NavLink>
     </li>
   )
 }
