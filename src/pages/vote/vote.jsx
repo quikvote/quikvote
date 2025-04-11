@@ -463,11 +463,13 @@ export default function Vote() {
       {alert.show && <AlertNotification />}
       <main className="main" id="main-element">
         {renderRoundIndicator()}
-        {renderPreviousRoundResults()}
 
-        <ul className="vote-options">
-          {renderOptions()}
-        </ul>
+        <div className="vote-content">
+          {renderPreviousRoundResults()}
+          <ul className="vote-options">
+            {renderOptions()}
+          </ul>
+        </div>
         {/* Determine whether to show add option based on room state and config */}
         {((roomState === 'preliminary' && config.options && 
              (config.options.allowNewOptions === 'everyone' || 
