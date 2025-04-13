@@ -11,8 +11,16 @@ export default function AnonymousLogin() {
     const [nickname, setNickname] = useState('')
     const [displayError, setDisplayError] = React.useState(null);
 
-    const { setCurrentUser } = useContext(UserContext)
+    const { currentUser, setCurrentUser } = useContext(UserContext)
     const navigate = useNavigate()
+
+    //Only navigate after currentUser is for sure set.
+    useEffect(() => {
+        if (currentUser) {
+            console.log("In useEffect: ", currentUser, nickname)
+            navigate('/')
+        }
+    }, [currentUser])
 
     async function registerAnonymously(event) {
         event.preventDefault()
@@ -37,7 +45,8 @@ export default function AnonymousLogin() {
         const body = await response.json();
         if (response.status === 201) {
             setCurrentUser({ username: anonymousUsername, nickname })
-            navigate('/')
+            // Sometimes it might navigate too quickly, and this causes problems.
+            // navigate('/')
         } else {
             setDisplayError(`⚠ Error: ${body.msg}`);
         }
