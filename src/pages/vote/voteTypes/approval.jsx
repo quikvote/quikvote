@@ -14,6 +14,14 @@ export default function ApprovalVote({ options, vote, setVote, disabled, isRoomO
             setVote({
                 approvals: initialApprovals
             });
+        } else {
+            const filteredVotes = Object.fromEntries(
+                Object.entries(vote.approvals || {}).filter(([optionText]) => options.some(opt => opt.text === optionText))
+            );
+
+            setVote( {
+                approvals: filteredVotes
+            });
         }
     }, [options]);
 
@@ -46,7 +54,7 @@ export default function ApprovalVote({ options, vote, setVote, disabled, isRoomO
                             )}
                         </div>
                         <span className="option-name">{option.text}</span>
-                        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} />
+                        <RemoveOptionButton isRoomOwner={isRoomOwner} disabled={disabled} option={option} toggleApproval={toggleApproval} />
                     </li>
                 );
             })}
