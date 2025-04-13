@@ -119,7 +119,7 @@ const PieChart = ({ options }) => {
 
   return (
     <div>
-      <ReactApexChart options={chartOptions} series={series} type="pie" height={400} />
+      <ReactApexChart options={chartOptions} series={series} type="pie" height={325} />
     </div>
   );
 };
