@@ -88,7 +88,8 @@ export default function Login() {
           <form className="login__form">
             {currentUser && (
               <>
-                <p>Name: <b>{currentUser.nickname ?? currentUser.username}</b></p>
+                {/*Use || instead of ?? to also trigger when empty string*/}
+                <p>Name: <b>{currentUser.nickname || currentUser.username}</b></p>
                 <button
                   className="main__button"
                   name="action"
